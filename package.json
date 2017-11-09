@@ -1,0 +1,17 @@
+{
+  "name": "gophers-web",
+  "main": "index.js",
+  "description": "gophers.id web site",
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+  },
+  "cacheDirectories": [
+    ".cache",
+    "node_modules"
+  ],
+  "scripts": {
+    "postinstall": "misc/gen.sh"
+  }
+}
+

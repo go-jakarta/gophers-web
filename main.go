@@ -4,6 +4,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"net/http"
 )
 
@@ -16,5 +17,5 @@ func main() {
 	mux.HandleFunc("/", func(res http.ResponseWriter, req *http.Request) {
 		fmt.Fprint(res, "nothing here.\n")
 	})
-	http.ListenAndServe(*flagListen, mux)
+	log.Fatal(http.ListenAndServe(*flagListen, mux))
 }
