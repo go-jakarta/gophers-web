@@ -1,5 +1,5 @@
 [metadata.heroku]
-  root-package = "git.brank.as/brankas-site"
+  root-package = "github.com/go-jakarta/gophers-web"
   go-version = "go1.9.2"
   ensure = "false"
 
