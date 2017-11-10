@@ -26,7 +26,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(res http.ResponseWriter, req *http.Request) {
-		fmt.Fprint(res, "nothing here.\n")
+		fmt.Fprint(res, "one more test\n")
 	})
 
 	listen := *flagHost + ":" + *flagPort
