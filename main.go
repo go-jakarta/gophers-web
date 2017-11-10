@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 )
 
 var (
-	flagListen = flag.String("listen", "localhost:3000", "listen")
+	flagListen = flag.String("listen", os.Getenv("HOST")+":"+os.Getenv("PORT"), "listen")
 )
 
 func main() {
