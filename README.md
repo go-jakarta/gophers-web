@@ -19,7 +19,7 @@ This app is deployed on the web as a Dokku app.
 
 ```sh
 # add a dokku remote
-git remote add dokku dokku@dokku01-sgp1.gophers.id:gophers-web
+git remote add dokku dokku@dokku01.sgp1.gophers.id:gophers-web
 
 # push
 git push dokku master
