@@ -17,9 +17,6 @@ var (
 func main() {
 	flag.Parse()
 
-	if *flagHost == "" {
-		*flagHost = "0.0.0.0"
-	}
 	if *flagPort == "" {
 		*flagPort = "3000"
 	}
