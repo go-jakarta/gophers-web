@@ -12,6 +12,9 @@
   ],
   "scripts": {
     "postinstall": "misc/gen.sh"
+  },
+  "engines": {
+    "node": ">=8.9.1 <9.0.0"
   }
 }
 
