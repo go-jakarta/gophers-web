@@ -10,13 +10,26 @@ import (
 )
 
 var (
-	flagListen = flag.String("listen", os.Getenv("HOST")+":"+os.Getenv("PORT"), "listen")
+	flagHost = flag.String("host", os.Getenv("HOST"), "host")
+	flagPort = flag.String("port", os.Getenv("PORT"), "port")
 )
 
 func main() {
+	flag.Parse()
+
+	if *flagHost == "" {
+		*flagHost = "localhost"
+	}
+	if *flagPort == "" {
+		*flagPort = "3000"
+	}
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(res http.ResponseWriter, req *http.Request) {
 		fmt.Fprint(res, "nothing here.\n")
 	})
-	log.Fatal(http.ListenAndServe(*flagListen, mux))
+
+	listen := *flagHost + ":" + *flagPort
+	log.Printf("listen: %s", listen)
+	log.Fatal(http.ListenAndServe(listen, mux))
 }
