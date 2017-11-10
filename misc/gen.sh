@@ -32,3 +32,5 @@ export GOROOT=$CACHE_DIR/go-$VER
 export PATH=$CACHE_DIR/go-$VER/bin:$PATH
 
 go generate
+
+go build
