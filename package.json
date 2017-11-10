@@ -1,10 +1,9 @@
 {
   "name": "gophers-web",
-  "main": "index.js",
   "description": "gophers.id web site",
   "license": "MIT",
-  "private": true,
-  "dependencies": {
+  "engines": {
+    "node": ">=8.9.1 <9.0.0"
   },
   "cacheDirectories": [
     ".cache",
@@ -13,8 +12,7 @@
   "scripts": {
     "postinstall": "misc/gen.sh"
   },
-  "engines": {
-    "node": ">=8.9.1 <9.0.0"
+  "dependencies": {
   }
 }
 
