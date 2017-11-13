@@ -65,5 +65,6 @@ const (
 <body>
   <a href="%s">%s</a>
 </body>
-</html>`
+</html>
+`
 )
