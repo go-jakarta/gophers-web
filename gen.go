@@ -52,7 +52,7 @@ func main() {
 		eraseBuildDist,
 		setupPaths,
 		copyFonts,
-		optimizeImages,
+		//optimizeImages,
 		generateManifest,
 		buildCss,
 		buildJs,
