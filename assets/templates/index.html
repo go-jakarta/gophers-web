@@ -39,7 +39,7 @@
   {% if len(p.Events) > 0 %}{% code
     event := p.Events[0]
 
-    t := time.Unix(0, int64(event.Time)*int64(time.Millisecond))
+    t := time.Unix(0, int64(event.Time)*int64(time.Millisecond)).In(jakarta)
     days := []string{
       T(`Sunday`),
       T(`Monday`), T(`Tuesday`), T(`Wednesday`),

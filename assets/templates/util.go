@@ -16,6 +16,8 @@ var (
 	CsrfToken CsrfTokenFunc
 
 	year string
+
+	jakarta *time.Location
 )
 
 type keyType int
@@ -25,12 +27,20 @@ const (
 )
 
 func init() {
-	year = time.Now().Format("2006")
+	time.Local = time.UTC
+
+	var err error
+	jakarta, err = time.LoadLocation("Asia/Jakarta")
+	if err != nil {
+		panic(err)
+	}
+
+	year = time.Now().In(jakarta).Format("2006")
 
 	go func() {
 		for {
 			time.Sleep(1 * time.Hour)
-			year = time.Now().Format("2006")
+			year = time.Now().In(jakarta).Format("2006")
 		}
 	}()
 }
