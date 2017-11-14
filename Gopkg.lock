@@ -15,6 +15,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/eladmica/go-meetup"
+  packages = ["meetup"]
+  revision = "635586fdb7a453dcf8a746688b3f305b3ef08d86"
+
+[[projects]]
+  branch = "master"
   name = "github.com/golang/gddo"
   packages = ["httputil/header"]
   revision = "46b0a98c66c5f547c384e0da4841c7d54e5fa333"
@@ -178,6 +184,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "114f44b9101afb9f7dca60111dde8c134b937a2511b4c031a58fa2176521d2a0"
+  inputs-digest = "1801eb632e1e497456cf1f366eff5ca142c43e4e4ef44ce8ba29114a28d2eba7"
   solver-name = "gps-cdcl"
   solver-version = 1

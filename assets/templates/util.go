@@ -35,22 +35,19 @@ func init() {
 	}()
 }
 
-// NewHandler creates a template handler for the page.
-func NewHandler(p Page, def TransFunc, translations map[string]TransFunc) http.HandlerFunc {
-	return func(res http.ResponseWriter, req *http.Request) {
-		ctxt := req.Context()
-		w := qtpl.AcquireWriter(res)
-		defer qtpl.ReleaseWriter(w)
+// Do displays the page using the supplied translation func and translations.
+func Do(res http.ResponseWriter, req *http.Request, p Page, def TransFunc, translations map[string]TransFunc) {
+	w := qtpl.AcquireWriter(res)
+	defer qtpl.ReleaseWriter(w)
 
-		// grab translator from context
-		lang := ctxt.Value(LanguageKey).(string)
-		T, ok := translations[lang]
-		if !ok {
-			T = def
-		}
-
-		StreamLayoutPage(w, p, req, lang, T)
+	// grab translator from context
+	lang := req.Context().Value(LanguageKey).(string)
+	T, ok := translations[lang]
+	if !ok {
+		T = def
 	}
+
+	StreamLayoutPage(w, p, req, lang, T)
 }
 
 var translations = []struct {

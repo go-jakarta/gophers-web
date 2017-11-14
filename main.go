@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/eladmica/go-meetup/meetup"
 	"github.com/golang/gddo/httputil/header"
 	"github.com/gorilla/csrf"
 	"github.com/kenshaw/glogrus2"
@@ -62,6 +63,12 @@ var (
 
 	// translations
 	translations map[string]*gotext.Po
+
+	// meetup client
+	meetupClient *meetup.Client
+
+	// indexPage
+	indexPage wwwtpl.Page
 )
 
 func init() {
@@ -114,6 +121,31 @@ func init() {
 	if err != nil {
 		logger.Fatal(err)
 	}
+
+	// setup meetup client and events
+	meetupClient = meetup.NewClient(nil)
+	meetupClient.Authentication = meetup.NewKeyAuth(config.GetKey("meetup.token"))
+	meetupEvents, err := meetupClient.GetEvents("GoJakarta", nil)
+	if err != nil {
+		logger.Fatal(err)
+	}
+
+	logger.Printf("loaded %d events", len(meetupEvents))
+
+	// update every hour the event information
+	mapsToken := config.GetKey("google.mapstoken")
+	indexPage = &wwwtpl.IndexPage{meetupEvents, mapsToken}
+	go func() {
+		time.Sleep(1 * time.Hour)
+
+		events, err := meetupClient.GetEvents("GoJakarta", nil)
+		if err != nil {
+			logger.Error(err)
+		} else {
+			logger.Printf("retrieved %d events", len(events))
+			indexPage = &wwwtpl.IndexPage{events, mapsToken}
+		}
+	}()
 }
 
 func main() {
@@ -310,7 +342,6 @@ func setupServer() *graceful.Server {
 		fmt.Fprintln(res, robotsTxt)
 	})
 
-	indexHandler := wwwtpl.NewHandler(&wwwtpl.IndexPage{}, idTrans, transMap)
 	mux.HandleFunc(pat.Get("/*"), func(res http.ResponseWriter, req *http.Request) {
 		// handle the go-get stuff
 		if req.URL.Query().Get("go-get") == "1" {
@@ -336,7 +367,7 @@ func setupServer() *graceful.Server {
 			return
 		}
 
-		indexHandler.ServeHTTP(res, req)
+		wwwtpl.Do(res, req, indexPage, idTrans, transMap)
 	})
 
 	// setup graceful

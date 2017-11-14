@@ -1,20 +1,101 @@
+{% import (
+  "regexp"
+  "time"
+
+  "github.com/eladmica/go-meetup/meetup"
+) %}
 {% code
-  type IndexPage struct {}
+  type IndexPage struct {
+    Events []*meetup.Event
+    GoogleMapsToken string
+  }
+
+  var (
+    prefixRE = regexp.MustCompile(`(?i)^meetup:\s*`)
+  )
 %}
 {% stripspace %}
 {% func (p *IndexPage) Name(T TransFunc) %}index{% endfunc %}
 {% func (p *IndexPage) Title(T TransFunc) %}{%s= T(`Home`) %}{% endfunc %}
 {% func (p *IndexPage) Description(T TransFunc) %}{% endfunc %}
-{% func (p *IndexPage) Content(T TransFunc) %}
+{% func (p *IndexPage) ExtraHeaders(T TransFunc) %}
+<style>
+#map {
+  height: 400px;
+  width: 100%;
+}
+</style>
+{% endfunc %}
+{% func (p *IndexPage) Content(T TransFunc) %}{% code
+%}
 <div class="jumbotron">
-  <h1 class="display-3">Jumbotron</h1>
+  <h1 class="display-3">GoJakarta</h1>
   <p>
-    {%s= T(`This is a simple hero unit, a simple jumbotron-style component for
-    calling extra attention to featured content or information.`) %}
+    {%s= T(`GoJakarta aims to bring exposure to the Go programming language to
+    the Jakarta tech scene. GoJakarta holds monthly meetups where the community
+    can come together to learn about the latest techniques, libraries,
+    frameworks, and more in Go.`) %}
+  </p>
+  {% if len(p.Events) > 0 %}{% code
+    event := p.Events[0]
+
+    t := time.Unix(0, int64(event.Time)*int64(time.Millisecond))
+    days := []string{
+      T(`Sunday`),
+      T(`Monday`), T(`Tuesday`), T(`Wednesday`),
+      T(`Thursday`), T(`Friday`), T(`Saturday`),
+    }
+    months := []string{
+      T(`January`), T(`February`), T(`March`),
+      T(`April`), T(`May`), T(`June`),
+      T(`July`), T(`August`), T(`September`),
+      T(`October`), T(`November`), T(`December`),
+    }
+  %}
+  <p>
+    {%s= T(`Next Event:`) %}&nbsp;<a href="{%s event.Link %}" target="_blank">{%s prefixRE.ReplaceAllString(event.Name, "") %}</a>
   </p>
   <p>
-    <a class="btn btn-primary btn-lg" href="#">{%s= T(`Learn more`) %}</a>
+    {% code
+      d := days[t.Weekday()] + ", " + months[t.Month()-1] + " " + t.Format("02, 2006")
+      z := t.Format(time.Kitchen)
+    %}
+    {%s= T(`When: %s at %s`, d, z) %}
   </p>
+  {% if event.Venue != nil %}
+  <p>
+    {%s T(`Where: %s`, event.Venue.Name) %}<br>
+    {%s event.Venue.Address1 %}<br>
+    {% if event.Venue.Address2 != "" %}{%s event.Venue.Address2 %}<br>{% endif %}
+    {% if event.Venue.Address3 != "" %}{%s event.Venue.Address3 %}<br>{% endif %}
+  </p>
+  <div id="map"></div>
+  {% endif %}
+  {% else %}
+  <p>
+    {%s= T(`No upcoming meetups scheduled.`) %}
+  </p>
+  {% endif %}
 </div>
+{% endfunc %}
+{% func (p *IndexPage) ExtraScripts(T TransFunc) %}
+{% if len(p.Events) > 0 && p.Events[0].Venue != nil %}{% code
+  venue := p.Events[0].Venue
+%}
+<script>
+  function initMap() {
+    var loc = { lat: {%f= venue.Lat %}, lng: {%f= venue.Lon %} };
+    var map = new google.maps.Map(document.getElementById('map'), {
+      zoom: 16,
+      center: loc
+    });
+    var marker = new google.maps.Marker({
+      position: loc,
+      map: map
+    });
+  }
+</script>
+<script async defer src="https://maps.googleapis.com/maps/api/js?key={%s= p.GoogleMapsToken %}&callback=initMap" type="text/javascript"></script>
+{% endif %}
 {% endfunc %}
 {% endstripspace %}

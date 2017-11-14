@@ -7,6 +7,8 @@ Page {
   Title(T TransFunc)
   Description(T TransFunc)
   Content(T TransFunc)
+  ExtraScripts(t TransFunc)
+  ExtraHeaders(t TransFunc)
 }
 %}
 {% stripspace %}
@@ -63,6 +65,8 @@ Page {
 
   <link rel="stylesheet" href="{%s= Asset(`app.css`) %}">
 
+  {%= p.ExtraHeaders(T) %}
+
   <!-- favicon -->
   <!--
   <link rel="apple-touch-icon" sizes="180x180" href="{%s= Asset(`images/favicon/apple-touch-icon.png`) %}">
@@ -115,8 +119,12 @@ Page {
   {%= p.Content(T) %}
 <!-- /content -->
 
-<footer class="footer">
-  <p>&copy;{%s= year %} &nbsp; GoJakarta</p>
+<footer class="footer text-muted">
+  <div class="container">
+    <p class="float-right">
+    </p>
+    <p>&copy;{%s= year %} &nbsp; GoJakarta</p>
+  </div>
 </footer>
 
 <!-- scripts -->
@@ -131,6 +139,9 @@ Page {
   gtag('config', 'UA-109672752-1');
 </script>
 <!-- end google analytics -->
+
+{%= p.ExtraScripts(T) %}
+
 <!-- /scripts -->
 
 </body>
