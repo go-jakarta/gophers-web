@@ -279,7 +279,7 @@ func setupServer() *graceful.Server {
 		IsDevelopment: isDevEnv,
 	}).Handler)
 
-	// add goji/csrf middleware
+	// add gorilla/csrf middleware
 	mux.Use(csrf.Protect(
 		[]byte(config.GetKey("server.csrftoken")),
 		csrf.RequestHeader("X-CSRF"),
@@ -311,7 +311,7 @@ func setupServer() *graceful.Server {
 	})
 
 	indexHandler := wwwtpl.NewHandler(&wwwtpl.IndexPage{}, idTrans, transMap)
-	mux.HandleFunc(pat.Get("/"), func(res http.ResponseWriter, req *http.Request) {
+	mux.HandleFunc(pat.Get("/*"), func(res http.ResponseWriter, req *http.Request) {
 		// handle the go-get stuff
 		if req.URL.Query().Get("go-get") == "1" {
 			repo := strings.TrimPrefix(req.URL.Path, "/")

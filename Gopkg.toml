@@ -2,6 +2,7 @@
   root-package = "gophers.id/gophers-web"
   go-version = "go1.9.2"
   ensure = "false"
+  install = ["."]
 
 [[constraint]]
   branch = "master"
