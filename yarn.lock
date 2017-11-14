@@ -1239,6 +1239,14 @@ go-bindata@^0.0.7:
   version "0.0.7"
   resolved "https://registry.yarnpkg.com/go-bindata/-/go-bindata-0.0.7.tgz#6e45b2cb8c7db00e044ea7ef0a5b7c27fe96c456"
 
+go-qtc@^0.0.6:
+  version "0.0.6"
+  resolved "https://registry.yarnpkg.com/go-qtc/-/go-qtc-0.0.6.tgz#0443342d79c5fcd3851ce2424e2b690736c521da"
+
+go-xgettext@^0.0.1:
+  version "0.0.1"
+  resolved "https://registry.yarnpkg.com/go-xgettext/-/go-xgettext-0.0.1.tgz#07d72c2ec0e0547951cd539a153f878a1af8ff64"
+
 got@^5.0.0:
   version "5.7.1"
   resolved "https://registry.yarnpkg.com/got/-/got-5.7.1.tgz#5f81635a61e4a6589f180569ea4e381680a51f35"
