@@ -13,6 +13,19 @@
     "postinstall": "misc/gen.sh"
   },
   "dependencies": {
+    "autoprefixer": "^7.1.6",
+    "bootswatch": "^4.0.0-beta.2",
+    "clean-css-cli": "^4.1.10",
+    "go-bindata": "^0.0.7",
+    "html-minifier": "^3.5.6",
+    "imagemin-cli": "^3.0.0",
+    "imagemin-gifsicle": "^5.2.0",
+    "imagemin-guetzli": "^1.0.0",
+    "imagemin-pngquant": "^5.0.1",
+    "imagemin-svgo": "^6.0.0",
+    "node-sass": "^4.6.1",
+    "postcss-cli": "^4.1.1",
+    "svgo": "^1.0.3",
+    "uglify-js": "^3.1.9"
   }
 }
-

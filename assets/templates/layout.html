@@ -1,0 +1,139 @@
+{% import (
+  "net/http"
+) %}
+{% interface
+Page {
+  Name(T TransFunc)
+  Title(T TransFunc)
+  Description(T TransFunc)
+  Content(T TransFunc)
+}
+%}
+{% stripspace %}
+{% func LayoutPage(p Page, req *http.Request, lang string, T TransFunc) %}
+{% code
+  pageName     := p.Name(T)
+  title        := p.Title(T)
+  description  := p.Description(T)
+
+  isIndex      := pageName == "index"
+  //navbarInvert := isIndex
+  pagePath     := pageName
+
+  if isIndex {
+    pagePath = ""
+  }
+
+  if description == "" {
+    description = title
+  }
+
+  locale := lang + "-"
+  if lang == "en" {
+    locale += "us"
+  } else {
+    locale += lang
+  }
+%}
+<!DOCTYPE html>
+<html lang="{%s= lang %}">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- prefetch -->
+  <link rel="dns-prefetch" href="https://www.googletagmanager.com">
+  <link rel="preconnect" href="https://www.googletagmanager.com">
+
+  <!-- description -->
+  <meta name="description" content="{%s= description %}">
+  <meta name="author" content="GoJakarta">
+
+  <!-- i18n related tags -->
+  <link rel="canonical" href="https://gophers.id/{%s= pagePath %}?l={%s= lang %}">
+  <meta name="language" content="{%s= lang %}">
+  <meta http-equiv="content-language" content="{%s= locale %}">
+  <meta name="keywords" content="{%s= T(`GoJakarta`) %}">
+  {% for _, l := range translations %}
+  <link rel="alternate" hreflang="{%s= l.lang %}" href="/{%s= pagePath %}?l={%s= l.lang %}">
+  {% endfor %}
+
+  <title>GoJakarta{% if title != "" %}{%s= " - " + title %}{% endif %}</title>
+
+  <link rel="stylesheet" href="{%s= Asset(`app.css`) %}">
+
+  <!-- favicon -->
+  <!--
+  <link rel="apple-touch-icon" sizes="180x180" href="{%s= Asset(`images/favicon/apple-touch-icon.png`) %}">
+  <link rel="icon" type="image/png" sizes="32x32" href="{%s= Asset(`images/favicon/favicon-32x32.png`) %}">
+  <link rel="icon" type="image/png" sizes="16x16" href="{%s= Asset(`images/favicon/favicon-16x16.png`) %}">
+  <link rel="manifest" href="{%s= Asset(`images/favicon/manifest.json`) %}">
+  <link rel="mask-icon" color="#5bbad5" href="{%s= Asset(`images/favicon/safari-pinned-tab.svg`) %}">
+  -->
+</head>
+
+<body>
+
+<!-- navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+  <a class="navbar-brand" href="/">GoJakarta</a>
+  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarColor01" aria-controls="navbarColor01" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+
+  <div class="collapse navbar-collapse" id="navbarColor01">
+    <ul class="navbar-nav mr-auto">
+      <li class="nav-item active">
+        <a class="nav-link" href="/">Home <span class="sr-only">(current)</span></a>
+      </li>
+      <!--
+      <li class="nav-item">
+        <a class="nav-link" href="#">Pricing</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="#">About</a>
+      </li>
+      -->
+    </ul>
+    <ul class="nav navbar-nav ml-auto">
+      <li class="nav-item">
+        <a class="nav-link" href="https://github.com/go-jakarta" target="_blank">Github</a>
+      </li>
+    </ul>
+    <!--
+    <form class="form-inline my-2 my-lg-0">
+      <input class="form-control mr-sm-2" type="text" placeholder="Search">
+      <button class="btn btn-secondary my-2 my-sm-0" type="submit">Search</button>
+    </form>
+    -->
+  </div>
+</nav>
+<!-- /navbar -->
+
+<!-- content -->
+  {%= p.Content(T) %}
+<!-- /content -->
+
+<footer class="footer">
+  <p>&copy;{%s= year %} &nbsp; GoJakarta</p>
+</footer>
+
+<!-- scripts -->
+<script src="{%s= Asset(`app.js`) %}"></script>
+
+<!-- google analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-109672752-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-109672752-1');
+</script>
+<!-- end google analytics -->
+<!-- /scripts -->
+
+</body>
+</html>
+{% endfunc %}
+{% endstripspace %}

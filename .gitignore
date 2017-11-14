@@ -1,3 +1,6 @@
 /gophers-web
 /gophers-web.exe
-/.cache
+/node_modules/
+/.cache/
+/dist/
+/build/

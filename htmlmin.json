@@ -1,0 +1,14 @@
+{
+  "collapseBooleanAttributes": true,
+  "collapseWhitespace": true,
+  "removeComments": true,
+  "removeAttributeQuotes": true,
+  "removeScriptTypeAttributes": true,
+  "removeStyleLinkTypeAttributes": true,
+  "minifyCSS": true,
+  "minifyJS": true,
+  "ignoreCustomFragments": [
+    "\\{%[^%]+%\\}"
+  ],
+  "trimCustomFragments": true
+}

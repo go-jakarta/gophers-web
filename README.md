@@ -6,11 +6,42 @@ The website that runs [gophers.id](https://gophers.id/), the
 ## Installing and Running
 
 ```sh
+# retrieve the code
 $ go get -u -d gophers.id/gophers-web
+
+# change to the working path
 $ cd $GOPATH/src/gophers.id/gophers-web
-$ go generate
-$ go build
-$ ./gophers-web
+
+# copy environment config
+$ cp env/sample.config env/config
+
+# install dependencies and generate assets
+$ yarn
+
+# build executable and run
+$ go build && ./gophers-web
+```
+
+## Updating Templates + Translation Messages
+
+```sh
+# change to the working path
+$ cd $GOPATH/src/gophers.id/gophers-web
+
+# edit templates
+$ vi assets/templates/*.html
+
+# update messages
+$ ./misc/update-messages.sh
+
+# translate messages
+$ poedit assets/locales/id.po
+
+# add locales/
+$ git add assets/locales/id.po assets/templates/*.html
+
+# commit and push
+$ git commit -m 'Changing content' && git push
 ```
 
 ## Deploying

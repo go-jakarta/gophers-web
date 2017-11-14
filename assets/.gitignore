@@ -1,0 +1,4 @@
+/locales/*.go
+/assets.go
+*.html.go
+*.mo
