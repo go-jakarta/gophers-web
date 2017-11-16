@@ -23,10 +23,8 @@ func TestNoConfig(t *testing.T) {
 	expect(t, res.Body.String(), "bar")
 }
 
-func TestNoAllowHosts(t *testing.T) {
-	s := New(Options{
-		AllowedHosts: []string{},
-	})
+func TestEmptyAllowedHosts(t *testing.T) {
+	s := New()
 
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/foo", nil)
@@ -38,10 +36,8 @@ func TestNoAllowHosts(t *testing.T) {
 	expect(t, res.Body.String(), `bar`)
 }
 
-func TestGoodSingleAllowHosts(t *testing.T) {
-	s := New(Options{
-		AllowedHosts: []string{"www.example.com"},
-	})
+func TestOneAllowedHost(t *testing.T) {
+	s := New(AllowedHosts("www.example.com"))
 
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/foo", nil)
@@ -53,10 +49,8 @@ func TestGoodSingleAllowHosts(t *testing.T) {
 	expect(t, res.Body.String(), `bar`)
 }
 
-func TestBadSingleAllowHosts(t *testing.T) {
-	s := New(Options{
-		AllowedHosts: []string{"sub.example.com"},
-	})
+func TestBadAllowedHost(t *testing.T) {
+	s := New(AllowedHosts("sub.example.com"))
 
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/foo", nil)
@@ -68,10 +62,10 @@ func TestBadSingleAllowHosts(t *testing.T) {
 }
 
 func TestGoodSingleAllowHostsProxyHeaders(t *testing.T) {
-	s := New(Options{
-		AllowedHosts:      []string{"www.example.com"},
-		HostsProxyHeaders: []string{"X-Proxy-Host"},
-	})
+	s := New(
+		AllowedHosts("www.example.com"),
+		HostsProxyHeaders("X-Proxy-Host"),
+	)
 
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/foo", nil)
@@ -85,10 +79,10 @@ func TestGoodSingleAllowHostsProxyHeaders(t *testing.T) {
 }
 
 func TestBadSingleAllowHostsProxyHeaders(t *testing.T) {
-	s := New(Options{
-		AllowedHosts:      []string{"sub.example.com"},
-		HostsProxyHeaders: []string{"X-Proxy-Host"},
-	})
+	s := New(
+		AllowedHosts("sub.example.com"),
+		HostsProxyHeaders("X-Proxy-Host"),
+	)
 
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/foo", nil)
@@ -101,9 +95,9 @@ func TestBadSingleAllowHostsProxyHeaders(t *testing.T) {
 }
 
 func TestGoodMultipleAllowHosts(t *testing.T) {
-	s := New(Options{
-		AllowedHosts: []string{"www.example.com", "sub.example.com"},
-	})
+	s := New(
+		AllowedHosts("www.example.com", "sub.example.com"),
+	)
 
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/foo", nil)
@@ -116,9 +110,9 @@ func TestGoodMultipleAllowHosts(t *testing.T) {
 }
 
 func TestBadMultipleAllowHosts(t *testing.T) {
-	s := New(Options{
-		AllowedHosts: []string{"www.example.com", "sub.example.com"},
-	})
+	s := New(
+		AllowedHosts("www.example.com", "sub.example.com"),
+	)
 
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/foo", nil)
@@ -130,10 +124,10 @@ func TestBadMultipleAllowHosts(t *testing.T) {
 }
 
 func TestAllowHostsInDevMode(t *testing.T) {
-	s := New(Options{
-		AllowedHosts:  []string{"www.example.com", "sub.example.com"},
-		IsDevelopment: true,
-	})
+	s := New(
+		AllowedHosts("www.example.com", "sub.example.com"),
+		DevEnvironment(true),
+	)
 
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/foo", nil)
@@ -145,15 +139,12 @@ func TestAllowHostsInDevMode(t *testing.T) {
 }
 
 func TestBadHostHandler(t *testing.T) {
-	s := New(Options{
-		AllowedHosts: []string{"www.example.com", "sub.example.com"},
-	})
-
-	badHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "BadHost", http.StatusInternalServerError)
-	})
-
-	s.SetBadHostHandler(badHandler)
+	s := New(
+		AllowedHosts("www.example.com", "sub.example.com"),
+		BadHostHandler(func(w http.ResponseWriter, r *http.Request) {
+			http.Error(w, "BadHost", http.StatusInternalServerError)
+		}),
+	)
 
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/foo", nil)
@@ -168,9 +159,9 @@ func TestBadHostHandler(t *testing.T) {
 }
 
 func TestSSL(t *testing.T) {
-	s := New(Options{
-		SSLRedirect: true,
-	})
+	s := New(
+		SSLRedirect(true),
+	)
 
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/foo", nil)
@@ -183,10 +174,10 @@ func TestSSL(t *testing.T) {
 }
 
 func TestSSLInDevMode(t *testing.T) {
-	s := New(Options{
-		SSLRedirect:   true,
-		IsDevelopment: true,
-	})
+	s := New(
+		SSLRedirect(true),
+		DevEnvironment(true),
+	)
 
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/foo", nil)
@@ -199,9 +190,9 @@ func TestSSLInDevMode(t *testing.T) {
 }
 
 func TestBasicSSL(t *testing.T) {
-	s := New(Options{
-		SSLRedirect: true,
-	})
+	s := New(
+		SSLRedirect(true),
+	)
 
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/foo", nil)
@@ -215,10 +206,10 @@ func TestBasicSSL(t *testing.T) {
 }
 
 func TestBasicSSLWithHost(t *testing.T) {
-	s := New(Options{
-		SSLRedirect: true,
-		SSLHost:     "secure.example.com",
-	})
+	s := New(
+		SSLRedirect(true),
+		SSLHost("secure.example.com"),
+	)
 
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/foo", nil)
@@ -232,9 +223,9 @@ func TestBasicSSLWithHost(t *testing.T) {
 }
 
 func TestBadProxySSL(t *testing.T) {
-	s := New(Options{
-		SSLRedirect: true,
-	})
+	s := New(
+		SSLRedirect(true),
+	)
 
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/foo", nil)
@@ -249,10 +240,10 @@ func TestBadProxySSL(t *testing.T) {
 }
 
 func TestCustomProxySSL(t *testing.T) {
-	s := New(Options{
-		SSLRedirect:     true,
-		SSLProxyHeaders: map[string]string{"X-Forwarded-Proto": "https"},
-	})
+	s := New(
+		SSLRedirect(true),
+		SSLForwardedProxyHeaders(map[string]string{"X-Forwarded-Proto": "https"}),
+	)
 
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/foo", nil)
@@ -266,11 +257,11 @@ func TestCustomProxySSL(t *testing.T) {
 }
 
 func TestCustomProxySSLInDevMode(t *testing.T) {
-	s := New(Options{
-		SSLRedirect:     true,
-		SSLProxyHeaders: map[string]string{"X-Forwarded-Proto": "https"},
-		IsDevelopment:   true,
-	})
+	s := New(
+		SSLRedirect(true),
+		SSLForwardedProxyHeaders(map[string]string{"X-Forwarded-Proto": "https"}),
+		DevEnvironment(true),
+	)
 
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/foo", nil)
@@ -284,11 +275,11 @@ func TestCustomProxySSLInDevMode(t *testing.T) {
 }
 
 func TestCustomProxyAndHostProxyHeadersWithRedirect(t *testing.T) {
-	s := New(Options{
-		HostsProxyHeaders: []string{"X-Forwarded-Host"},
-		SSLRedirect:       true,
-		SSLProxyHeaders:   map[string]string{"X-Forwarded-Proto": "http"},
-	})
+	s := New(
+		HostsProxyHeaders("X-Forwarded-Host"),
+		SSLRedirect(true),
+		SSLForwardedProxyHeaders(map[string]string{"X-Forwarded-Proto": "http"}),
+	)
 
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/foo", nil)
@@ -304,11 +295,11 @@ func TestCustomProxyAndHostProxyHeadersWithRedirect(t *testing.T) {
 }
 
 func TestCustomProxyAndHostSSL(t *testing.T) {
-	s := New(Options{
-		SSLRedirect:     true,
-		SSLProxyHeaders: map[string]string{"X-Forwarded-Proto": "https"},
-		SSLHost:         "secure.example.com",
-	})
+	s := New(
+		SSLRedirect(true),
+		SSLForwardedProxyHeaders(map[string]string{"X-Forwarded-Proto": "https"}),
+		SSLHost("secure.example.com"),
+	)
 
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/foo", nil)
@@ -322,11 +313,11 @@ func TestCustomProxyAndHostSSL(t *testing.T) {
 }
 
 func TestCustomBadProxyAndHostSSL(t *testing.T) {
-	s := New(Options{
-		SSLRedirect:     true,
-		SSLProxyHeaders: map[string]string{"X-Forwarded-Proto": "superman"},
-		SSLHost:         "secure.example.com",
-	})
+	s := New(
+		SSLRedirect(true),
+		SSLForwardedProxyHeaders(map[string]string{"X-Forwarded-Proto": "superman"}),
+		SSLHost("secure.example.com"),
+	)
 
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/foo", nil)
@@ -341,12 +332,12 @@ func TestCustomBadProxyAndHostSSL(t *testing.T) {
 }
 
 func TestCustomBadProxyAndHostSSLWithTempRedirect(t *testing.T) {
-	s := New(Options{
-		SSLRedirect:          true,
-		SSLProxyHeaders:      map[string]string{"X-Forwarded-Proto": "superman"},
-		SSLHost:              "secure.example.com",
-		SSLTemporaryRedirect: true,
-	})
+	s := New(
+		SSLRedirect(true),
+		SSLForwardedProxyHeaders(map[string]string{"X-Forwarded-Proto": "superman"}),
+		SSLHost("secure.example.com"),
+		SSLTemporaryRedirect(true),
+	)
 
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/foo", nil)
@@ -360,10 +351,10 @@ func TestCustomBadProxyAndHostSSLWithTempRedirect(t *testing.T) {
 	expect(t, res.Header().Get("Location"), "https://secure.example.com/foo")
 }
 
-func TestStsHeaderWithNoSSL(t *testing.T) {
-	s := New(Options{
-		STSSeconds: 315360000,
-	})
+func TestSTSHeaderWithNoSSL(t *testing.T) {
+	s := New(
+		STSSeconds(315360000),
+	)
 
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/foo", nil)
@@ -374,11 +365,11 @@ func TestStsHeaderWithNoSSL(t *testing.T) {
 	expect(t, res.Header().Get("Strict-Transport-Security"), "")
 }
 
-func TestStsHeaderWithNoSSLButWithForce(t *testing.T) {
-	s := New(Options{
-		STSSeconds:     315360000,
-		ForceSTSHeader: true,
-	})
+func TestSTSHeaderWithNoSSLButWithForce(t *testing.T) {
+	s := New(
+		STSSeconds(315360000),
+		ForceSTSHeader(true),
+	)
 
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/foo", nil)
@@ -389,12 +380,12 @@ func TestStsHeaderWithNoSSLButWithForce(t *testing.T) {
 	expect(t, res.Header().Get("Strict-Transport-Security"), "max-age=315360000")
 }
 
-func TestStsHeaderWithNoSSLButWithForceAndIsDev(t *testing.T) {
-	s := New(Options{
-		STSSeconds:     315360000,
-		ForceSTSHeader: true,
-		IsDevelopment:  true,
-	})
+func TestSTSHeaderWithNoSSLButWithForceAndDev(t *testing.T) {
+	s := New(
+		STSSeconds(315360000),
+		ForceSTSHeader(true),
+		DevEnvironment(true),
+	)
 
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/foo", nil)
@@ -405,11 +396,11 @@ func TestStsHeaderWithNoSSLButWithForceAndIsDev(t *testing.T) {
 	expect(t, res.Header().Get("Strict-Transport-Security"), "")
 }
 
-func TestStsHeaderWithSSL(t *testing.T) {
-	s := New(Options{
-		SSLProxyHeaders: map[string]string{"X-Forwarded-Proto": "https"},
-		STSSeconds:      315360000,
-	})
+func TestSTSHeaderWithSSL(t *testing.T) {
+	s := New(
+		SSLForwardedProxyHeaders(map[string]string{"X-Forwarded-Proto": "https"}),
+		STSSeconds(315360000),
+	)
 
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/foo", nil)
@@ -422,11 +413,11 @@ func TestStsHeaderWithSSL(t *testing.T) {
 	expect(t, res.Header().Get("Strict-Transport-Security"), "max-age=315360000")
 }
 
-func TestStsHeaderInDevMode(t *testing.T) {
-	s := New(Options{
-		STSSeconds:    315360000,
-		IsDevelopment: true,
-	})
+func TestSTSHeaderInDevMode(t *testing.T) {
+	s := New(
+		STSSeconds(315360000),
+		DevEnvironment(true),
+	)
 
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/foo", nil)
@@ -438,11 +429,11 @@ func TestStsHeaderInDevMode(t *testing.T) {
 	expect(t, res.Header().Get("Strict-Transport-Security"), "")
 }
 
-func TestStsHeaderWithSubdomains(t *testing.T) {
-	s := New(Options{
-		STSSeconds:           315360000,
-		STSIncludeSubdomains: true,
-	})
+func TestSTSHeaderWithSubdomains(t *testing.T) {
+	s := New(
+		STSSeconds(315360000),
+		STSIncludeSubdomains(true),
+	)
 
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/foo", nil)
@@ -454,11 +445,11 @@ func TestStsHeaderWithSubdomains(t *testing.T) {
 	expect(t, res.Header().Get("Strict-Transport-Security"), "max-age=315360000; includeSubdomains")
 }
 
-func TestStsHeaderWithPreload(t *testing.T) {
-	s := New(Options{
-		STSSeconds: 315360000,
-		STSPreload: true,
-	})
+func TestSTSHeaderWithPreload(t *testing.T) {
+	s := New(
+		STSSeconds(315360000),
+		STSPreload(true),
+	)
 
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/foo", nil)
@@ -470,12 +461,12 @@ func TestStsHeaderWithPreload(t *testing.T) {
 	expect(t, res.Header().Get("Strict-Transport-Security"), "max-age=315360000; preload")
 }
 
-func TestStsHeaderWithSubdomainsWithPreload(t *testing.T) {
-	s := New(Options{
-		STSSeconds:           315360000,
-		STSIncludeSubdomains: true,
-		STSPreload:           true,
-	})
+func TestSTSHeaderWithSubdomainsWithPreload(t *testing.T) {
+	s := New(
+		STSSeconds(315360000),
+		STSIncludeSubdomains(true),
+		STSPreload(true),
+	)
 
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/foo", nil)
@@ -488,9 +479,9 @@ func TestStsHeaderWithSubdomainsWithPreload(t *testing.T) {
 }
 
 func TestFrameDeny(t *testing.T) {
-	s := New(Options{
-		FrameDeny: true,
-	})
+	s := New(
+		FrameDeny(true),
+	)
 
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/foo", nil)
@@ -502,9 +493,9 @@ func TestFrameDeny(t *testing.T) {
 }
 
 func TestCustomFrameValue(t *testing.T) {
-	s := New(Options{
-		CustomFrameOptionsValue: "SAMEORIGIN",
-	})
+	s := New(
+		CustomFrameOptionsValue("SAMEORIGIN"),
+	)
 
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/foo", nil)
@@ -516,10 +507,10 @@ func TestCustomFrameValue(t *testing.T) {
 }
 
 func TestCustomFrameValueWithDeny(t *testing.T) {
-	s := New(Options{
-		FrameDeny:               true,
-		CustomFrameOptionsValue: "SAMEORIGIN",
-	})
+	s := New(
+		FrameDeny(true),
+		CustomFrameOptionsValue("SAMEORIGIN"),
+	)
 
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/foo", nil)
@@ -531,9 +522,9 @@ func TestCustomFrameValueWithDeny(t *testing.T) {
 }
 
 func TestContentNosniff(t *testing.T) {
-	s := New(Options{
-		ContentTypeNosniff: true,
-	})
+	s := New(
+		ContentTypeNosniff(true),
+	)
 
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/foo", nil)
@@ -545,9 +536,9 @@ func TestContentNosniff(t *testing.T) {
 }
 
 func TestXSSProtection(t *testing.T) {
-	s := New(Options{
-		BrowserXssFilter: true,
-	})
+	s := New(
+		BrowserXSSFilter(true),
+	)
 
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/foo", nil)
@@ -560,9 +551,9 @@ func TestXSSProtection(t *testing.T) {
 
 func TestCustomXSSProtection(t *testing.T) {
 	xssVal := "1; report=https://example.com"
-	s := New(Options{
-		CustomBrowserXssValue: xssVal,
-	})
+	s := New(
+		CustomBrowserXSSValue(xssVal),
+	)
 
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/foo", nil)
@@ -575,10 +566,10 @@ func TestCustomXSSProtection(t *testing.T) {
 
 func TestBothXSSProtection(t *testing.T) {
 	xssVal := "0"
-	s := New(Options{
-		BrowserXssFilter:      true,
-		CustomBrowserXssValue: xssVal,
-	})
+	s := New(
+		BrowserXSSFilter(true),
+		CustomBrowserXSSValue(xssVal),
+	)
 
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/foo", nil)
@@ -589,10 +580,10 @@ func TestBothXSSProtection(t *testing.T) {
 	expect(t, res.Header().Get("X-XSS-Protection"), xssVal)
 }
 
-func TestCsp(t *testing.T) {
-	s := New(Options{
-		ContentSecurityPolicy: "default-src 'self'",
-	})
+func TestContentSecurityPolicy(t *testing.T) {
+	s := New(
+		ContentSecurityPolicy("default-src 'self'"),
+	)
 
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/foo", nil)
@@ -604,9 +595,9 @@ func TestCsp(t *testing.T) {
 }
 
 func TestInlineSecure(t *testing.T) {
-	s := New(Options{
-		FrameDeny: true,
-	})
+	s := New(
+		FrameDeny(true),
+	)
 
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/foo", nil)
@@ -622,69 +613,10 @@ func TestInlineSecure(t *testing.T) {
 	expect(t, res.Header().Get("X-Frame-Options"), "DENY")
 }
 
-// https://developer.mozilla.org/en-US/docs/Web/Security/Public_Key_Pinning
-const hpkp = `pin-sha256="cUPcTAZWKaASuYWhhneDttWpY3oBAkE3h2+soZS7sWs="; pin-sha256="M8HztCzM3elUxkcjR2S5P4hhyBNf6lHkmjAHKhpGPWE="; max-age=5184000; includeSubdomains; report-uri="https://www.example.net/hpkp-report"`
-
-func TestHPKP(t *testing.T) {
-	s := New(Options{
-		PublicKey: hpkp,
-	})
-
-	res := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/foo", nil)
-	req.URL.Scheme = "https"
-
-	s.Handler(myHandler).ServeHTTP(res, req)
-
-	expect(t, res.Code, http.StatusOK)
-	expect(t, res.Header().Get("Public-Key-Pins"), hpkp)
-}
-
-func TestHPKPNotSet(t *testing.T) {
-	s := New()
-
-	res := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/foo", nil)
-
-	s.Handler(myHandler).ServeHTTP(res, req)
-
-	expect(t, res.Code, http.StatusOK)
-	expect(t, res.Header().Get("Public-Key-Pins"), "")
-}
-
-func TestHPKPInDevMode(t *testing.T) {
-	s := New(Options{
-		PublicKey:     hpkp,
-		IsDevelopment: true,
-	})
-
-	res := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/foo", nil)
-
-	s.Handler(myHandler).ServeHTTP(res, req)
-
-	expect(t, res.Code, http.StatusOK)
-	expect(t, res.Header().Get("Public-Key-Pins"), "")
-}
-
-func TestHPKPNonSSL(t *testing.T) {
-	s := New(Options{
-		PublicKey: hpkp,
-	})
-
-	res := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/foo", nil)
-
-	s.Handler(myHandler).ServeHTTP(res, req)
-
-	expect(t, res.Code, http.StatusOK)
-	expect(t, res.Header().Get("Public-Key-Pins"), "")
-}
-
 func TestReferrer(t *testing.T) {
-	s := New(Options{
-		ReferrerPolicy: "same-origin",
-	})
+	s := New(
+		ReferrerPolicy("same-origin"),
+	)
 
 	res := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/foo", nil)
@@ -695,9 +627,8 @@ func TestReferrer(t *testing.T) {
 	expect(t, res.Header().Get("Referrer-Policy"), "same-origin")
 }
 
-/* Test Helpers */
 func expect(t *testing.T, a interface{}, b interface{}) {
-	if a != b {
+	if !reflect.DeepEqual(a, b) {
 		t.Errorf("Expected [%v] (type %v) - Got [%v] (type %v)", b, reflect.TypeOf(b), a, reflect.TypeOf(a))
 	}
 }

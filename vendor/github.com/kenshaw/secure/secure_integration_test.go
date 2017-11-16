@@ -19,10 +19,10 @@ func TestIntegration(t *testing.T) {
 		fmt.Fprintf(w, "bar")
 	})
 
-	secureMiddleware := New(Options{
-		ContentTypeNosniff: true,
-		FrameDeny:          true,
-	})
+	secureMiddleware := New(
+		ContentTypeNosniff(true),
+		FrameDeny(true),
+	)
 
 	n := negroni.New()
 	n.Use(negroni.HandlerFunc(secureMiddleware.HandlerFuncWithNext))
@@ -44,11 +44,11 @@ func TestIntegrationWithError(t *testing.T) {
 		fmt.Fprintf(w, "bar")
 	})
 
-	secureMiddleware := New(Options{
-		ContentTypeNosniff: true,
-		FrameDeny:          true,
-		AllowedHosts:       []string{"www.example.com", "sub.example.com"},
-	})
+	secureMiddleware := New(
+		ContentTypeNosniff(true),
+		FrameDeny(true),
+		AllowedHosts("www.example.com", "sub.example.com"),
+	)
 
 	n := negroni.New()
 	n.Use(negroni.HandlerFunc(secureMiddleware.HandlerFuncWithNext))

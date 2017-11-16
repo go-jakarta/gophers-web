@@ -21,13 +21,13 @@ import (
 	"github.com/gorilla/csrf"
 	"github.com/kenshaw/glogrus2"
 	"github.com/kenshaw/gojiid"
+	"github.com/kenshaw/secure"
 	"github.com/knq/envcfg"
 	"github.com/knq/wutil"
 	"github.com/leonelquinteros/gotext"
 	maxminddb "github.com/oschwald/maxminddb-golang"
 	"github.com/sirupsen/logrus"
 	"github.com/tylerb/graceful"
-	"github.com/unrolled/secure"
 
 	// goji
 	"goji.io"
@@ -291,25 +291,22 @@ func setupServer() *graceful.Server {
 	mux.Use(glogrus2.NewWithReqId(logger, "gophers-web", gojiid.FromContext))
 
 	// add basic security options
-	mux.Use(secure.New(secure.Options{
-		AllowedHosts: []string{
+	mux.Use(secure.New(
+		secure.AllowedHosts(
 			"gophers.id", "www.gophers.id",
-		},
-		SSLRedirect:          true,
-		SSLHost:              "gophers.id",
-		SSLProxyHeaders:      map[string]string{"X-Forwarded-Proto": "https"},
-		STSSeconds:           315360000,
-		STSIncludeSubdomains: true,
-		STSPreload:           true,
-		FrameDeny:            true,
-		ContentTypeNosniff:   true,
-		BrowserXssFilter:     true,
-		//ContentSecurityPolicy: "default-src 'self'", // TODO: fix this
-		//PublicKey: fmt.Sprintf(""), // TODO: add this (public-key-pinning)
-
-		// toggle development depending on environment
-		IsDevelopment: isDevEnv,
-	}).Handler)
+		),
+		secure.SSLRedirect(true),
+		secure.SSLHost("gophers.id"),
+		secure.SSLForwardedProxyHeaders(map[string]string{"X-Forwarded-Proto": "https"}),
+		secure.STSSeconds(315360000),
+		secure.STSIncludeSubdomains(true),
+		secure.STSPreload(true),
+		secure.FrameDeny(true),
+		secure.ContentTypeNosniff(true),
+		secure.BrowserXSSFilter(true),
+		//secure.ContentSecurityPolicy: "default-src 'self'", // TODO: fix this
+		secure.DevEnvironment(isDevEnv), // toggle development depending on environment
+	).Handler)
 
 	// add gorilla/csrf middleware
 	mux.Use(csrf.Protect(

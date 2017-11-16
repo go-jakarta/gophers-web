@@ -69,6 +69,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/kenshaw/secure"
+  packages = ["."]
+  revision = "fb9e03f6cced3499fdc7a5eedddd074e2ad1efff"
+
+[[projects]]
+  branch = "master"
   name = "github.com/knq/envcfg"
   packages = ["."]
   revision = "e107959ff98b6b2243a08f162eb6fe4366fc20e5"
@@ -134,12 +140,6 @@
   version = "v1.2.15"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/unrolled/secure"
-  packages = ["."]
-  revision = "0f73fc7feba662a2ad5ff887fe203af08f8f8716"
-
-[[projects]]
   name = "github.com/valyala/quicktemplate"
   packages = ["."]
   revision = "de41ba48f1d9953aca12983c953532f3776b4347"
@@ -184,6 +184,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "1801eb632e1e497456cf1f366eff5ca142c43e4e4ef44ce8ba29114a28d2eba7"
+  inputs-digest = "95b7e173127cf7d3a589e437ea726ea708dede53730c3680c8d34784c3b31a78"
   solver-name = "gps-cdcl"
   solver-version = 1

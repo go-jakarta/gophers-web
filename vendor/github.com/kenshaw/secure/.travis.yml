@@ -1,0 +1,10 @@
+language: go
+go:
+  - 1.5
+  - tip
+before_install:
+  - go get github.com/mattn/goveralls
+  - go get github.com/codegangsta/negroni
+script:
+  - go test -v -race -tags=integration -coverprofile=coverage.out
+  - goveralls -service=travis-ci -coverprofile=coverage.out
