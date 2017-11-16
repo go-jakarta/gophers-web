@@ -306,6 +306,9 @@ func setupServer() *graceful.Server {
 		secure.BrowserXSSFilter(true),
 		//secure.ContentSecurityPolicy: "default-src 'self'", // TODO: fix this
 		secure.DevEnvironment(isDevEnv), // toggle development depending on environment
+		secure.BadHostHandler(func(res http.ResponseWriter, req *http.Request) {
+			http.Redirect(res, req, "https://gophers.id/", http.StatusMovedPermanently)
+		}),
 	).Handler)
 
 	// add gorilla/csrf middleware
