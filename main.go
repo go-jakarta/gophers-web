@@ -362,12 +362,20 @@ func setupServer() *graceful.Server {
 		}
 
 		// do a redirect ...
-		if strings.ToLower(strings.TrimPrefix(req.URL.Path, "/")) == "gojakarta" {
+		reqPath := strings.ToLower(strings.TrimPrefix(req.URL.Path, "/"))
+		switch reqPath {
+		case "gojakarta":
 			http.Redirect(res, req, "https://meetup.com/GoJakarta", http.StatusMovedPermanently)
-			return
-		}
 
-		wwwtpl.Do(res, req, indexPage, idTrans, transMap)
+		case "slides":
+			http.Redirect(res, req, "https://github.com/go-jakarta/slides", http.StatusMovedPermanently)
+
+		case "index", "index.html", "":
+			wwwtpl.Do(res, req, indexPage, idTrans, transMap)
+
+		default:
+			http.NotFound(res, req)
+		}
 	})
 
 	// setup graceful
