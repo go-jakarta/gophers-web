@@ -1,8 +1,12 @@
 [metadata.heroku]
   root-package = "gophers.id/gophers-web"
-  go-version = "go1.9.2"
+  go-version = "go1.9.4"
   ensure = "false"
   install = ["."]
+
+[prune]
+  unused-packages = true
+  go-tests = true
 
 [[constraint]]
   branch = "master"
@@ -43,10 +47,6 @@
 [[constraint]]
   name = "github.com/tylerb/graceful"
   version = "1.2.15"
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/unrolled/secure"
 
 [[constraint]]
   name = "github.com/valyala/quicktemplate"

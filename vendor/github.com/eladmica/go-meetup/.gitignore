@@ -1,5 +1,0 @@
-.idea
-go-meetup.*
-/*.go
-meetup/coverage.out
-meetup/*.sh

@@ -1,9 +1,11 @@
 # About secure [![GoDoc](https://godoc.org/github.com/kenshaw/secure?status.svg)](http://godoc.org/github.com/kenshaw/secure) [![Build Status](https://travis-ci.org/kenshaw/secure.svg)](https://travis-ci.org/kenshaw/secure)
 
-`secure` is an HTTP middleware for Go that facilitates some quick security wins.
-It's a standard [net/http.Handler](http://golang.org/pkg/net/http/#Handler),
-and can be used with many [frameworks](#integration-examples) or directly with
-Go's `net/http` package.
+Package `secure` is an HTTP middleware for Go that handles adding security
+headers to HTTP responses, and accompanying security checks.
+
+`secure` is a standard [net/http.Handler](http://golang.org/pkg/net/http/#Handler),
+and can be used with Go's `net/http` package, or [integrated with a number of
+frameworks](#integration-examples).
 
 ## Installation
 
@@ -14,6 +16,14 @@ $ go get -u github.com/kenshaw/secure
 ```
 
 ## Usage
+
+Be sure to include an instance of the `secure.Middleware` as early as possible
+in your middleware chain, but added **after** any logging or recovery
+middleware. This allows the `secure.Middleware` to apply the defined security
+rules, and short-circuit any requests not satisfying the declared security
+policies.
+
+The `secure.Middleware` can be used similarly to the following:
 
 ```go
 // examples/std/main.go
@@ -50,15 +60,11 @@ func main() {
 }
 ```
 
-Be sure to include the Secure middleware as close to the top (beginning) as
-possible (but after logging and recovery). It's best to do the allowed hosts
-and SSL check before anything else.
-
-The above example will only allow requests with a host name of 'example.com',
-or 'ssl.example.com'. Also if the request is not HTTPS, it will be redirected
-to HTTPS with the host name of 'ssl.example.com'.
-
-Once those requirements are satisfied, it will add the following headers:
+The above example allows requests with a host name of `example.com`, or
+`ssl.example.com` and will redirecte any HTTP requests to the HTTPS host
+`ssl.example.com`. Additionally, the above use of the `secure.Middleware` will
+add the following browser security headers after checking and applying the
+defined security policies:
 
 ```http
 Strict-Transport-Security: 315360000; includeSubdomains; preload
@@ -70,26 +76,23 @@ Content-Security-Policy: default-src 'self'
 
 ### Set the `DevEnvironment` option to `true` when developing!
 
-When `DevEnvironment` is true, the AllowedHosts, SSLRedirect, STS header, and
-HPKP header will not be in effect. This allows you to work in development/test
-mode and not have any annoying redirects to HTTPS (ie. development can happen
-over HTTP), or block `localhost` has a bad host.
+When `DevEnvironment` is toggled, the `AllowedHosts`, `SSLRedirect`, and `STS*`
+header settings will be ignored and `localhost` will be permitted as an allowed
+host. This allows you to do development/testing without forced redirects to
+HTTPS (ie. allowing the developer to work on HTTP).
 
 ### Configuration
 
-Secure comes with a variety of configuration options that can be set either
+`secure` comes with a variety of configuration options that can be set either
 directly on the `secure.Middleware` type, or by using the functional option
-pattern via a call to `secure.New`. Please see the [GoDoc](https://godoc.org/github.com/kenshaw/secure)
-listing for more information.
+pattern via a call to `secure.New`.
 
-### Default options
-
-These are the preset options for Secure:
+Please see the [GoDoc](https://godoc.org/github.com/kenshaw/secure) listing for
+a full list of the API.
 
 ### Redirecting HTTP to HTTPS
 
-If you want to redirect all HTTP requests to HTTPS, you can use the following
-example.
+The following demonstrates redirecting all HTTP requests to HTTPS:
 
 ```go
 // examples/redirect/main.go
@@ -131,23 +134,30 @@ func main() {
 }
 ```
 
-### Strict Transport Security
+### Strict Transport Security Headers
 
-The STS header will only be sent on verified HTTPS connections (and when
-`DevEnvironment` is false). Be sure to set the `SSLProxyHeaders` option if your
-application is behind a proxy to ensure the proper behavior. If you need the
-STS header for all HTTP and HTTPS requests (which you [shouldn't](http://tools.ietf.org/html/rfc6797#section-7.2)),
-you can use the `ForceSTSHeader` option. Note that if `DevEnvironment` is true,
-it will still disable this header even when `ForceSTSHeader` is set to true.
+`STS*` headers will only be sent on verified HTTPS connections (and when
+`DevEnvironment` is not true).
 
-* The `preload` flag is required for domain inclusion in Chrome's [preload](https://hstspreload.appspot.com/) list.
+Be sure to set the `SSLForwardedProxyHeaders` option if your application is
+behind a proxy to ensure the correct behavior. If you need `STS*` headers for
+all HTTP and HTTPS requests (which you **[SHOULD NOT](http://tools.ietf.org/html/rfc6797#section-7.2)**),
+you may use the `ForceSTSHeader` option. Note that when `DevEnvironment` is
+true, it will disable this header, regardless if `ForceSTSHeader` is set to
+true.
 
-### Content Security Policy
+**NOTE:** the `preload` flag is required for domain inclusion in Chrome's
+[preload](https://hstspreload.appspot.com/) list.
 
-If you need dynamic support for CSP while using Websockets, check out this
-other middleware [awakenetworks/csp](https://github.com/awakenetworks/csp).
+### Content Security Policy and WebSockets
+
+If you need dynamic support for CSP when using WebSockets, please [use this
+middleware instead](https://github.com/awakenetworks/csp).
 
 ## Integration examples
+
+The following are some examples of using `secure.Middleware` with common Go web
+frameworks and routers:
 
 ### [chi](https://github.com/pressly/chi)
 ```go
@@ -343,23 +353,23 @@ func main() {
 
 ## nginx
 
-If you would like to add the above security rules directly to your
-[nginx](http://wiki.nginx.org/Main) configuration, everything is below:
+If you'd prefer to add the above security rules directly to your
+[nginx](http://nginx.org) configuration, please refer to the following:
 
 ```nginx
-# Allowed Hosts:
+# allowed hosts
 if ($host !`* ^(example.com|ssl.example.com)$ ) {
     return 500;
 }
 
-# SSL Redirect:
+# ssl redirect:
 server {
     listen      80;
     server_name example.com ssl.example.com;
     return 301 https://ssl.example.com$request_uri;
 }
 
-# Headers to be added:
+# security headers
 add_header Strict-Transport-Security "max-age=315360000";
 add_header X-Frame-Options "DENY";
 add_header X-Content-Type-Options "nosniff";

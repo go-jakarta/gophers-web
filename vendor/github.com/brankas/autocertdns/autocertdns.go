@@ -3,26 +3,58 @@
 package autocertdns
 
 import (
+	"bytes"
 	"context"
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/knq/pemutil"
-
 	"golang.org/x/crypto/acme"
 )
 
 const (
-	acmeKey = "acme_account.key"
+	// acmeKeyFile is the name of the ACME key file used with the directory
+	// cache.
+	acmeKeyFile = "acme_account.key"
 
-	LetsEncryptURL        = acme.LetsEncryptURL
+	// acmeChallengeDomainPrefix is the ACME challenge domain prefix.
+	acmeChallengeDomainPrefix = "_acme-challenge."
+
+	// keySuffix is the filename suffix for cached key files.
+	keySuffix = ".key"
+
+	// certSuffix is the filename suffix for cached certificate files.
+	certSuffix = ".crt"
+
+	// LetsEncryptURL is the default ACME server URL.
+	LetsEncryptURL = acme.LetsEncryptURL
+
+	// LetsEncryptStagingURL is the ACME staging server URL, used for testing
+	// purposes.
 	LetsEncryptStagingURL = "https://acme-staging.api.letsencrypt.org/directory"
+)
+
+var (
+	// ErrInvalidCertificate is the invalid certificate error.
+	ErrInvalidCertificate = errors.New("invalid certificate")
+
+	// ErrCertificateExpired is the certificate expired error.
+	ErrCertificateExpired = errors.New("certificate expired")
 )
 
 // Provisioner is the shared interface for providers that can provision DNS
@@ -37,33 +69,133 @@ type Provisioner interface {
 	Unprovision(ctxt context.Context, typ, name, token string) error
 }
 
+// Manager holds information related to managing a DNS-01 based ACME autocert
+// provider.
 type Manager struct {
+	// DirectoryURL is the directory URL to use.
 	DirectoryURL string
-	Prompt       func(string) bool
-	CacheDir     string
-	Email        string
-	Domain       string
-	Provisioner  Provisioner
-	Logf         func(string, ...interface{})
 
-	mu sync.Mutex
+	// Prompt is the func used to accept the TOS.
+	Prompt func(string) bool
+
+	// CacheDir is the directory to store certificates in.
+	CacheDir string
+
+	// Email is the ACME email account.
+	Email string
+
+	// Domain is the domain to generate certificates for.
+	Domain string
+
+	// RenewBefore is the window before the expiration of a certificate,
+	// after which the current certificate will attempt to be renewed.
+	//
+	// If zero, certificates will be renewed 5 days before expiration.
+	RenewBefore time.Duration
+
+	// Provisioner is the DNS provisioner used to provision and unprovision the
+	// DNS-01 challenges given by the ACME server.
+	Provisioner Provisioner
+
+	// Logf is a logging func.
+	Logf func(string, ...interface{})
+
+	// Errorf is an error logging func.
+	Errorf func(string, ...interface{})
+
+	// cert is the current certificate.
+	cert *tls.Certificate
+
+	// nextExpiry is the next expiration date.
+	nextExpiry time.Time
+
+	rw sync.RWMutex
 }
 
+// log logs s, v via Manager.Logf.
 func (m *Manager) log(s string, v ...interface{}) {
 	if m.Logf != nil {
 		m.Logf(s, v...)
 	}
 }
 
+// errf creates an error using s and v from fmt.Errorf, reporting the error to
+// the Errorf (if defined, or Logf otherwise) func, and returning the created
+// error. Useful for wrapping internal errors and ensuring they are output via
+// Manager.log.
 func (m *Manager) errf(s string, v ...interface{}) error {
 	err := fmt.Errorf(s, v...)
-	m.log("ERROR: %v", err)
+	if m.Errorf == nil {
+		m.log("ERROR: %v", err)
+	} else {
+		m.Errorf(s, v)
+	}
 	return err
 }
 
-func (m *Manager) Renew(ctxt context.Context) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+// loadOrRenew will attempt to load a certificate from the directory in
+// Manager.DirCache, if that fails then an attempt will be made to create/renew
+// a certificate based on the Manager configuration.
+func (m *Manager) loadOrRenew(ctxt context.Context) error {
+	err := m.load()
+	if err == nil {
+		return nil
+	}
+	return m.renew(ctxt)
+}
+
+// load loads a cached certificate on disk (if it exists), and decoding the PEM
+// encoded CERTIFICATE blocks, and loading the appropriate certificate leaf as
+// a tls certificate.
+func (m *Manager) load() error {
+	m.rw.Lock()
+	defer m.rw.Unlock()
+
+	certKey, err := m.cachedKey(m.Domain + keySuffix)
+	if err != nil {
+		return err
+	}
+
+	buf, err := ioutil.ReadFile(filepath.Join(m.CacheDir, m.Domain+certSuffix))
+	if err != nil {
+		return err
+	}
+
+	var b *pem.Block
+	var der [][]byte
+	for {
+		b, buf = pem.Decode(buf)
+		if b.Type != "CERTIFICATE" {
+			return ErrInvalidCertificate
+		}
+		der = append(der, b.Bytes)
+		if buf == nil {
+			break
+		}
+	}
+
+	leaf, err := parseCert(m.Domain, der, certKey)
+	if err != nil {
+		return err
+	}
+
+	if time.Now().After(leaf.NotAfter) {
+		return ErrCertificateExpired
+	}
+
+	m.cert = &tls.Certificate{
+		Certificate: der,
+		Leaf:        leaf,
+		PrivateKey:  certKey,
+	}
+
+	return nil
+}
+
+// renew renews the certificate using the provided context.
+func (m *Manager) renew(ctxt context.Context) error {
+	m.rw.Lock()
+	defer m.rw.Unlock()
 
 	var err error
 
@@ -77,38 +209,10 @@ func (m *Manager) Renew(ctxt context.Context) error {
 		return m.errf("must provide Provisioner")
 	}
 
-	acmePath := m.CacheDir + "/" + acmeKey
-	store := pemutil.Store{}
-
-	// try to load cached credentials
-	err = store.LoadFile(acmePath)
-	if err != nil && os.IsNotExist(err) {
-		store, err = pemutil.GenerateECKeySet(elliptic.P256())
-		if err != nil {
-			return m.errf("could not generate ec key set: %v", err)
-		}
-		err = os.MkdirAll(m.CacheDir, 0700)
-		if err != nil {
-			return m.errf("could not create cache directory: %v", err)
-		}
-
-		var buf []byte
-		buf, err = store.Bytes()
-		if err != nil {
-			return m.errf("could not generate PEM: %v", err)
-		}
-		err = ioutil.WriteFile(acmePath, buf, 0600)
-		if err != nil {
-			return m.errf("could not save PEM: %v", err)
-		}
-	} else if err != nil {
-		return m.errf("unexpected error encountered: %v", err)
-	}
-
-	// grab key
-	key, ok := store[pemutil.ECPrivateKey].(*ecdsa.PrivateKey)
-	if !ok {
-		return m.errf("expected ec private key")
+	// load acme key
+	key, err := m.cachedKey(acmeKeyFile)
+	if err != nil {
+		return m.errf("could not load %s: %v", acmeKeyFile, err)
 	}
 
 	// create acme client
@@ -128,13 +232,13 @@ func (m *Manager) Renew(ctxt context.Context) error {
 	if ae, ok := err.(*acme.Error); err == nil || ok && ae.StatusCode == http.StatusConflict {
 		// already registered account
 	} else if err != nil {
-		return m.errf("could not register with ACME provider: %v", err)
+		return m.errf("could not register with ACME server: %v", err)
 	}
 
 	// create authorize challenges
 	authz, err := client.Authorize(ctxt, m.Domain)
 	if err != nil {
-		return m.errf("could not authorize with ACME provider: %v", err)
+		return m.errf("could not authorize with ACME server: %v", err)
 	}
 
 	// grab dns challenge
@@ -146,7 +250,7 @@ func (m *Manager) Renew(ctxt context.Context) error {
 		}
 	}
 	if challenge == nil {
-		return m.errf("no dns-01 challenge was provided by the ACME provider")
+		return m.errf("no dns-01 challenge found in challenges provided by the ACME server")
 	}
 
 	// exchange dns challenge
@@ -156,11 +260,11 @@ func (m *Manager) Renew(ctxt context.Context) error {
 	}
 
 	// provision TXT under _acme-challenge.<domain>
-	err = m.Provisioner.Provision(ctxt, "TXT", "_acme-challenge."+m.Domain, tok)
+	err = m.Provisioner.Provision(ctxt, "TXT", acmeChallengeDomainPrefix+m.Domain, tok)
 	if err != nil {
 		return m.errf("could not provision dns-01 TXT challenge: %v", err)
 	}
-	defer m.Provisioner.Unprovision(ctxt, "TXT", "_acme-challenge."+m.Domain, tok)
+	defer m.Provisioner.Unprovision(ctxt, "TXT", acmeChallengeDomainPrefix+m.Domain, tok)
 
 	// accept challenge
 	_, err = client.Accept(ctxt, challenge)
@@ -171,21 +275,222 @@ func (m *Manager) Renew(ctxt context.Context) error {
 	// wait for authorization
 	authz, err = client.WaitAuthorization(ctxt, authz.URI)
 	if err != nil {
-		return err
+		return m.errf("unable to wait for authorization from ACME server: %v", err)
 	} else if authz.Status != acme.StatusValid {
-		return m.errf("dns-01 challenge is %v", authz.Status)
+		return m.errf("dns-01 challenge is invalid (has status %v)", authz.Status)
+	}
+
+	// grab domain key
+	certKey, err := m.cachedKey(m.Domain + keySuffix)
+	if err != nil {
+		return m.errf("could not load domain key: %v", err)
+	}
+
+	// create certificate signing request
+	csr, err := x509.CreateCertificateRequest(rand.Reader, &x509.CertificateRequest{
+		Subject: pkix.Name{CommonName: m.Domain},
+	}, certKey)
+	if err != nil {
+		return m.errf("could not create certificate signing request: %v", err)
+	}
+
+	// create and parse certificate
+	der, urlstr, err := client.CreateCert(ctxt, csr, 0, true)
+	if err != nil {
+		return m.errf("could not create certificate: %v", err)
+	}
+	leaf, err := parseCert(m.Domain, der, certKey)
+	if err != nil {
+		return m.errf("could not parse certificate: %v", err)
+	}
+
+	// encode certificate
+	buf := new(bytes.Buffer)
+	for _, b := range der {
+		pb := &pem.Block{Type: pemutil.Certificate.String(), Bytes: b}
+		if err := pem.Encode(buf, pb); err != nil {
+			return m.errf("could not encode certificate: %v", err)
+		}
+	}
+
+	// cache certificate
+	certPath := filepath.Join(m.CacheDir, m.Domain+certSuffix)
+	err = ioutil.WriteFile(certPath, buf.Bytes(), 0600)
+	if err != nil {
+		return m.errf("could not write to %s: %v", certPath, err)
+	}
+
+	m.log("created certificate (domain: %s, url: %s, expires: %s)", m.Domain, urlstr, leaf.NotAfter.Format(time.RFC3339))
+	m.cert = &tls.Certificate{
+		Certificate: der,
+		Leaf:        leaf,
+		PrivateKey:  certKey,
 	}
 
 	return nil
 }
 
-// GetCertificate
+// cachedKey retrieves a private key from disk, generating a new elliptic.P256
+// key if the file is not on disk.
+func (m *Manager) cachedKey(filename string) (*ecdsa.PrivateKey, error) {
+	keyfile := filepath.Join(m.CacheDir, filename)
+
+	// try to load cached credentials
+	store, err := pemutil.LoadFile(keyfile)
+	if err != nil && os.IsNotExist(err) {
+		store, err = pemutil.GenerateECKeySet(elliptic.P256())
+		if err != nil {
+			return nil, fmt.Errorf("could not generate ec key set: %v", err)
+		}
+		err = os.MkdirAll(m.CacheDir, 0700)
+		if err != nil {
+			return nil, fmt.Errorf("could not create cache directory: %v", err)
+		}
+		err = store.WriteFile(keyfile)
+		if err != nil {
+			return nil, fmt.Errorf("could not save PEM: %v", err)
+		}
+	} else if err != nil {
+		return nil, fmt.Errorf("unexpected error: %v", err)
+	}
+
+	// grab key
+	key, ok := store.ECPrivateKey()
+	if !ok {
+		return nil, fmt.Errorf("%s does not contain ec private key", keyfile)
+	}
+
+	return key, nil
+}
+
+// cachedCert retrieves the certificate on disk for domain, and extracting the
+// expiry date.
+func (m *Manager) cachedCert(domain string) (crypto.Signer, time.Time, error) {
+	certPath := filepath.Join(m.CacheDir, domain+certSuffix)
+	store, err := pemutil.LoadFile(certPath)
+	if err != nil && !os.IsNotExist(err) {
+		return nil, time.Time{}, err
+	}
+
+	cert, ok := store.Certificate()
+	if !ok {
+		return nil, time.Time{}, fmt.Errorf("%s does not contain a certificate", certPath)
+	}
+
+	// extract signer, time
+	cert = cert
+
+	return nil, time.Time{}, nil
+}
+
+// afterRenew returns a channel that will be closed after the passing the
+// Manager's next expiration date.
+func (m *Manager) afterRenew() <-chan time.Time {
+	m.rw.RLock()
+	exp := m.nextExpiry
+	m.rw.RUnlock()
+
+	return time.After(exp.Sub(time.Now()))
+}
+
+// Run starts a goroutine to automatically renew a certificate until the passed
+// context has been closed. Will return an error if initially a certificate
+// cannot be issued/renewed and if any cached certificate is expired.
+func (m *Manager) Run(ctxt context.Context) error {
+	// manually renew
+	err := m.loadOrRenew(ctxt)
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		for {
+			select {
+			case <-m.afterRenew():
+				err = m.loadOrRenew(ctxt)
+				if err != nil {
+					_ = m.errf("cannot renew: %v", err)
+					return
+				}
+
+			case <-ctxt.Done():
+				m.log("context done: %v", ctxt.Err())
+				return
+			}
+		}
+	}()
+
+	return nil
+}
+
+// GetCertificate returns the current certificate.
 func (m *Manager) GetCertificate(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-	return nil, nil
+	m.rw.RLock()
+	defer m.rw.RUnlock()
+
+	return m.cert, nil
 }
 
 // AcceptTOS is a util func that always returns true to indicate acceptance of
 // the underlying ACME server's Terms of Service during account registration.
 func AcceptTOS(string) bool {
 	return true
+}
+
+// parseCert parses a cert chain provided as der argument and verifies the leaf, der[0],
+// corresponds to the private key, as well as the domain match and expiration dates.
+// It doesn't do any revocation checking.
+//
+// The returned value is the verified leaf cert.
+//
+// adapted from golang.org/x/crypto/acme/autocert.validCert
+func parseCert(domain string, der [][]byte, key crypto.Signer) (leaf *x509.Certificate, err error) {
+	// parse public part(s)
+	var n int
+	for _, b := range der {
+		n += len(b)
+	}
+	pub := make([]byte, n)
+	n = 0
+	for _, b := range der {
+		n += copy(pub[n:], b)
+	}
+	x509Cert, err := x509.ParseCertificates(pub)
+	if len(x509Cert) == 0 {
+		return nil, errors.New("no public key found")
+	}
+	// verify the leaf is not expired and matches the domain name
+	leaf = x509Cert[0]
+	now := time.Now()
+	if now.Before(leaf.NotBefore) {
+		return nil, errors.New("certificate is not valid yet")
+	}
+	if now.After(leaf.NotAfter) {
+		return nil, errors.New("expired certificate")
+	}
+	if err := leaf.VerifyHostname(domain); err != nil {
+		return nil, err
+	}
+	// ensure the leaf corresponds to the private key
+	switch pub := leaf.PublicKey.(type) {
+	case *rsa.PublicKey:
+		prv, ok := key.(*rsa.PrivateKey)
+		if !ok {
+			return nil, errors.New("private key type does not match public key type")
+		}
+		if pub.N.Cmp(prv.N) != 0 {
+			return nil, errors.New("private key does not match public key")
+		}
+	case *ecdsa.PublicKey:
+		prv, ok := key.(*ecdsa.PrivateKey)
+		if !ok {
+			return nil, errors.New("private key type does not match public key type")
+		}
+		if pub.X.Cmp(prv.X) != 0 || pub.Y.Cmp(prv.Y) != 0 {
+			return nil, errors.New("private key does not match public key")
+		}
+	default:
+		return nil, errors.New("unknown public key algorithm")
+	}
+	return leaf, nil
 }
