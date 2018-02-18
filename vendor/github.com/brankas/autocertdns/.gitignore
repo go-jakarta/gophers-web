@@ -1,6 +1,0 @@
-/cache/
-*.key
-*.pem
-
-.*token
-.*.json

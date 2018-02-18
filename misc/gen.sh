@@ -2,7 +2,7 @@
 
 #set -ex
 
-VER=1.9.4
+VER=1.10
 
 if [ -z "$BUILD_DIR" ]; then
   BUILD_DIR=$(pwd)
