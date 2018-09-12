@@ -8,10 +8,10 @@ import (
 
 // File represents parsed ini data.
 type File struct {
-	// lines in file
+	// lines in file.
 	lines []*Line
 
-	// sections in file
+	// sections in file.
 	sections []*Section
 
 	// Manipulation function used on section name for AddSection,
@@ -40,12 +40,12 @@ type File struct {
 
 // NewFile creates a new ini.File from provided lines.
 func NewFile(lines []*Line) *File {
-	// create ret object
+	// create
 	ret := &File{
 		lines:    lines,
 		sections: make([]*Section, 0),
 
-		// copy manipulation functions
+		// copy manipulation funcs
 		SectionManipFunc: SectionManipFunc,
 		SectionNameFunc:  SectionNameFunc,
 		SectionCompFunc:  nil,
@@ -82,13 +82,13 @@ func NewFile(lines []*Line) *File {
 }
 
 // String returns formatted ini file data.
+//
+// Satisfies fmt.Stringer interface.
 func (f File) String() string {
 	var buf bytes.Buffer
-
 	for _, l := range f.lines {
 		buf.WriteString(l.String())
 	}
-
 	return buf.String()
 }
 
@@ -101,7 +101,6 @@ func (f *File) Write(filename string) error {
 	defer file.Close()
 
 	_, err = file.WriteString(f.String())
-
 	return err
 }
 
@@ -213,7 +212,7 @@ func (f *File) GetSection(name string) *Section {
 	return s
 }
 
-// SetMap sets all Section and Key values from provided map.
+// SetMap sets all section and key values from provided map.
 //
 // Replaces values if the key already exists, or adds them otherwise.
 func (f *File) SetMap(values map[string]map[string]string) {
@@ -323,7 +322,7 @@ func (f *File) RemoveSection(name string) {
 	f.sections = append(f.sections[:pos], f.sections[pos+1:]...)
 }
 
-// SetKey sets a Key's value in File with name in form of section.key.
+// SetKey sets a key's value in File with name in form of section.key.
 //
 // If no section is specified, then the empty (first) section is used.
 //
@@ -340,7 +339,7 @@ func (f *File) SetKey(key, value string) {
 	section.SetKey(k, value)
 }
 
-// GetKey retrieves a stored Key value from File with name in form of
+// GetKey retrieves a stored key's value from File with name in form of
 // section.key.
 //
 // If no section is specified, then the key will be looked for in the empty
@@ -359,7 +358,7 @@ func (f *File) GetKey(key string) string {
 	return section.Get(k)
 }
 
-// RemoveKey removes a Key and its value from file with name in form of
+// RemoveKey removes a key and its value from file with name in form of
 // section.key.
 //
 // If no section is specified, then the empty (first) section is used.

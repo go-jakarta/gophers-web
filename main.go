@@ -16,14 +16,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/NYTimes/gziphandler"
 	"github.com/brankas/envcfg"
+	"github.com/brankas/stringid"
+	"github.com/brankas/wutil"
 	"github.com/eladmica/go-meetup/meetup"
 	"github.com/golang/gddo/httputil/header"
 	"github.com/gorilla/csrf"
-	"github.com/kenshaw/glogrus2"
 	"github.com/kenshaw/gojiid"
+	"github.com/kenshaw/logrusmw"
 	"github.com/kenshaw/secure"
-	"github.com/knq/wutil"
 	"github.com/leonelquinteros/gotext"
 	maxminddb "github.com/oschwald/maxminddb-golang"
 	"github.com/sirupsen/logrus"
@@ -54,9 +56,6 @@ var (
 
 	// config
 	config *envcfg.Envcfg
-
-	// google service account credentials
-	googleCreds []byte
 
 	// geoip
 	geoip *maxminddb.Reader
@@ -91,9 +90,6 @@ func init() {
 	env = config.GetKey("runtime.environment")
 	isDevEnv = env == "development"
 
-	// read google creds
-	googleCreds = []byte(config.GetKey("google.creds"))
-
 	// change environment for development
 	if isDevEnv {
 		tf := new(logrus.TextFormatter)
@@ -101,19 +97,6 @@ func init() {
 		tf.FullTimestamp = true
 
 		logger.Formatter = tf
-	} else {
-		// add stackdriver hook for logrus
-		/*
-			hook, err := sdhook.New(
-				sdhook.GoogleServiceAccountCredentialsJSON(googleCreds),
-				sdhook.LogName("gophers-web"),
-			)
-			if err != nil {
-				logger.Fatal(err)
-			}
-
-			logger.Hooks.Add(hook)
-		*/
 	}
 
 	// init geoip data
@@ -225,7 +208,7 @@ func setupAssets() error {
 			return err
 		}
 
-		po.Parse(string(buf))
+		po.Parse(buf)
 	}
 
 	logger.Printf("processed %d translations", len(translations))
@@ -288,7 +271,7 @@ func setupServer() *graceful.Server {
 
 		return http.HandlerFunc(mw)
 	})
-	mux.Use(glogrus2.NewWithReqId(logger, "gophers-web", gojiid.FromContext))
+	mux.Use(logrusmw.NewWithID(logger, stringid.FromContext))
 
 	// add basic security options
 	mux.Use(secure.New(
@@ -322,6 +305,9 @@ func setupServer() *graceful.Server {
 			http.Error(res, "invalid csrf token", http.StatusForbidden)
 		})),
 	))
+
+	// add gzip compression
+	mux.Use(gziphandler.GzipHandler)
 
 	// add general utility handlers
 	wutil.RegisterUtils(mux)

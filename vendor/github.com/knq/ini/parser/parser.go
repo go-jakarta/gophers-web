@@ -12,14 +12,15 @@ import (
 
 var (
 	// DefaultLeadingKeyWhitespace is the default leading whitespace for
-	// non-blank section keys
+	// non-blank section keys.
 	DefaultLeadingKeyWhitespace = "\t"
 
-	// DefaultLineEnding is the default line ending for new lines added to file
+	// DefaultLineEnding is the default line ending for new lines added to
+	// file.
 	DefaultLineEnding = "\n"
 
 	// DefaultNameKeySeparator is the default separator token for section.name
-	// style keys
+	// style keys.
 	DefaultNameKeySeparator = "."
 
 	// last position
@@ -47,7 +48,7 @@ func SectionNameFunc(name string) string {
 	return strings.TrimSpace(strings.ToLower(name))
 }
 
-// KeyManipFunc manipulates Key names.
+// KeyManipFunc manipulates key names.
 //
 // Takes a key name and returns the value that used. By default does
 // strings.TrimSpace(strings.ToLower(key)).
@@ -59,7 +60,7 @@ func KeyManipFunc(key string) string {
 	return strings.TrimSpace(strings.ToLower(key))
 }
 
-// KeyCompFunc is used to compare Key names on get/set.
+// KeyCompFunc is used to compare key names on get/set.
 //
 // Passes keys a, b through KeyManipFunc and returns string equality.
 //

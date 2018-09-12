@@ -14,12 +14,12 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -49,12 +49,38 @@ const (
 	LetsEncryptStagingURL = "https://acme-staging.api.letsencrypt.org/directory"
 )
 
-var (
+// Error is a autocertdns error.
+type Error string
+
+// Error satisfies the error interface.
+func (err Error) Error() string {
+	return string(err)
+}
+
+// Error values.
+const (
 	// ErrInvalidCertificate is the invalid certificate error.
-	ErrInvalidCertificate = errors.New("invalid certificate")
+	ErrInvalidCertificate Error = "invalid certificate"
 
 	// ErrCertificateExpired is the certificate expired error.
-	ErrCertificateExpired = errors.New("certificate expired")
+	ErrCertificateExpired Error = "certificate expired"
+
+	// ErrNoPublicKeyFound is the no public key found error.
+	ErrNoPublicKeyFound Error = "no public key found"
+
+	// ErrCertificateNotYetValid is the certificate not yet valid error.
+	ErrCertificateNotYetValid Error = "certificate not valid yet"
+
+	// ErrPrivateKeyTypeDoesNotMatchPublicKeyType is the private key type does
+	// not match public key type error.
+	ErrPrivateKeyTypeDoesNotMatchPublicKeyType Error = "private key type does not match public key type"
+
+	// ErrPrivateKeyTypeDoesNotMatchPublicKey is the private key does not match
+	// public key error.
+	ErrPrivateKeyDoesNotMatchPublicKey Error = "private key does not match public key"
+
+	// ErrUnknownPublicKeyAlgorithm is the unknown public key algorithm error.
+	ErrUnknownPublicKeyAlgorithm Error = "unknown public key algorithm"
 )
 
 // Provisioner is the shared interface for providers that can provision DNS
@@ -137,8 +163,7 @@ func (m *Manager) errf(s string, v ...interface{}) error {
 // Manager.DirCache, if that fails then an attempt will be made to create/renew
 // a certificate based on the Manager configuration.
 func (m *Manager) loadOrRenew(ctxt context.Context) error {
-	err := m.load()
-	if err == nil {
+	if err := m.load(); err == nil {
 		return nil
 	}
 	return m.renew(ctxt)
@@ -151,12 +176,14 @@ func (m *Manager) load() error {
 	m.rw.Lock()
 	defer m.rw.Unlock()
 
-	certKey, err := m.cachedKey(m.Domain + keySuffix)
+	domain := strings.TrimSuffix(m.Domain, ".")
+
+	certKey, err := m.cachedKey(domain + keySuffix)
 	if err != nil {
 		return err
 	}
 
-	buf, err := ioutil.ReadFile(filepath.Join(m.CacheDir, m.Domain+certSuffix))
+	buf, err := ioutil.ReadFile(filepath.Join(m.CacheDir, domain+certSuffix))
 	if err != nil {
 		return err
 	}
@@ -165,6 +192,9 @@ func (m *Manager) load() error {
 	var der [][]byte
 	for {
 		b, buf = pem.Decode(buf)
+		if b == nil {
+			break
+		}
 		if b.Type != "CERTIFICATE" {
 			return ErrInvalidCertificate
 		}
@@ -173,8 +203,11 @@ func (m *Manager) load() error {
 			break
 		}
 	}
+	if len(der) == 0 {
+		return ErrInvalidCertificate
+	}
 
-	leaf, err := parseCert(m.Domain, der, certKey)
+	leaf, err := parseCert(domain, der, certKey)
 	if err != nil {
 		return err
 	}
@@ -235,8 +268,11 @@ func (m *Manager) renew(ctxt context.Context) error {
 		return m.errf("could not register with ACME server: %v", err)
 	}
 
+	// normalize domain name
+	domain := strings.TrimSuffix(m.Domain, ".")
+
 	// create authorize challenges
-	authz, err := client.Authorize(ctxt, m.Domain)
+	authz, err := client.Authorize(ctxt, domain)
 	if err != nil {
 		return m.errf("could not authorize with ACME server: %v", err)
 	}
@@ -260,11 +296,11 @@ func (m *Manager) renew(ctxt context.Context) error {
 	}
 
 	// provision TXT under _acme-challenge.<domain>
-	err = m.Provisioner.Provision(ctxt, "TXT", acmeChallengeDomainPrefix+m.Domain, tok)
+	err = m.Provisioner.Provision(ctxt, "TXT", acmeChallengeDomainPrefix+domain, tok)
 	if err != nil {
 		return m.errf("could not provision dns-01 TXT challenge: %v", err)
 	}
-	defer m.Provisioner.Unprovision(ctxt, "TXT", acmeChallengeDomainPrefix+m.Domain, tok)
+	defer m.Provisioner.Unprovision(ctxt, "TXT", acmeChallengeDomainPrefix+domain, tok)
 
 	// accept challenge
 	_, err = client.Accept(ctxt, challenge)
@@ -281,14 +317,14 @@ func (m *Manager) renew(ctxt context.Context) error {
 	}
 
 	// grab domain key
-	certKey, err := m.cachedKey(m.Domain + keySuffix)
+	certKey, err := m.cachedKey(domain + keySuffix)
 	if err != nil {
 		return m.errf("could not load domain key: %v", err)
 	}
 
 	// create certificate signing request
 	csr, err := x509.CreateCertificateRequest(rand.Reader, &x509.CertificateRequest{
-		Subject: pkix.Name{CommonName: m.Domain},
+		Subject: pkix.Name{CommonName: domain},
 	}, certKey)
 	if err != nil {
 		return m.errf("could not create certificate signing request: %v", err)
@@ -299,7 +335,7 @@ func (m *Manager) renew(ctxt context.Context) error {
 	if err != nil {
 		return m.errf("could not create certificate: %v", err)
 	}
-	leaf, err := parseCert(m.Domain, der, certKey)
+	leaf, err := parseCert(domain, der, certKey)
 	if err != nil {
 		return m.errf("could not parse certificate: %v", err)
 	}
@@ -314,13 +350,13 @@ func (m *Manager) renew(ctxt context.Context) error {
 	}
 
 	// cache certificate
-	certPath := filepath.Join(m.CacheDir, m.Domain+certSuffix)
+	certPath := filepath.Join(m.CacheDir, domain+certSuffix)
 	err = ioutil.WriteFile(certPath, buf.Bytes(), 0600)
 	if err != nil {
 		return m.errf("could not write to %s: %v", certPath, err)
 	}
 
-	m.log("created certificate (domain: %s, url: %s, expires: %s)", m.Domain, urlstr, leaf.NotAfter.Format(time.RFC3339))
+	m.log("created certificate (domain: %s, url: %s, expires: %s)", domain, urlstr, leaf.NotAfter.Format(time.RFC3339))
 	m.cert = &tls.Certificate{
 		Certificate: der,
 		Leaf:        leaf,
@@ -457,40 +493,44 @@ func parseCert(domain string, der [][]byte, key crypto.Signer) (leaf *x509.Certi
 	}
 	x509Cert, err := x509.ParseCertificates(pub)
 	if len(x509Cert) == 0 {
-		return nil, errors.New("no public key found")
+		return nil, ErrNoPublicKeyFound
+
 	}
 	// verify the leaf is not expired and matches the domain name
 	leaf = x509Cert[0]
 	now := time.Now()
 	if now.Before(leaf.NotBefore) {
-		return nil, errors.New("certificate is not valid yet")
+		return nil, ErrCertificateNotYetValid
 	}
 	if now.After(leaf.NotAfter) {
-		return nil, errors.New("expired certificate")
+		return nil, ErrCertificateExpired
 	}
 	if err := leaf.VerifyHostname(domain); err != nil {
 		return nil, err
 	}
+
 	// ensure the leaf corresponds to the private key
 	switch pub := leaf.PublicKey.(type) {
 	case *rsa.PublicKey:
 		prv, ok := key.(*rsa.PrivateKey)
 		if !ok {
-			return nil, errors.New("private key type does not match public key type")
+			return nil, ErrPrivateKeyTypeDoesNotMatchPublicKeyType
 		}
 		if pub.N.Cmp(prv.N) != 0 {
-			return nil, errors.New("private key does not match public key")
+			return nil, ErrPrivateKeyDoesNotMatchPublicKey
 		}
+
 	case *ecdsa.PublicKey:
 		prv, ok := key.(*ecdsa.PrivateKey)
 		if !ok {
-			return nil, errors.New("private key type does not match public key type")
+			return nil, ErrPrivateKeyTypeDoesNotMatchPublicKeyType
 		}
 		if pub.X.Cmp(prv.X) != 0 || pub.Y.Cmp(prv.Y) != 0 {
-			return nil, errors.New("private key does not match public key")
+			return nil, ErrPrivateKeyDoesNotMatchPublicKey
 		}
+
 	default:
-		return nil, errors.New("unknown public key algorithm")
+		return nil, ErrUnknownPublicKeyAlgorithm
 	}
 	return leaf, nil
 }

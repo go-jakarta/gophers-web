@@ -5,7 +5,6 @@ package ini
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -15,94 +14,96 @@ import (
 	"github.com/knq/ini/parser"
 )
 
-// File data.
-//
-// An encapsulation of parser.File.
+// Error is a ini error.
+type Error string
+
+// Error satisfies the error interface.
+func (err Error) Error() string {
+	return string(err)
+}
+
+// Error values.
+const (
+	ErrNoFilenameSupplied Error = "no filename supplied"
+)
+
+// ParseError is a ini parse error.
+type ParseError struct {
+	name string
+	err  error
+}
+
+// Error satisfies the error interface.
+func (err *ParseError) Error() string {
+	return fmt.Sprintf("unable to parse %s: %v", err.name, err.err)
+}
+
+// File wraps parser.File with information about an ini file.
 //
 // File can be written to disk by calling File.Save.
 type File struct {
-	*parser.File        // ini file data
+	*parser.File        // ini file
 	Filename     string // filename to read/write from/to
 }
 
 // NewFile creates a new File.
 func NewFile() *File {
-	var lines []*parser.Line
-	inifile := parser.NewFile(lines)
-
 	return &File{
-		File:     inifile,
+		File:     parser.NewFile(nil),
 		Filename: "",
 	}
 }
 
-// Save file data to File.Filename.
+// Save writes the ini file data to File.Filename.
 //
-// Returns error if File.Filename name was not supplied, or if an error was
+// Returns error if File.Filename name was not set, or if an error was
 // encountered during write. Simple wrapper around parser.File.Write.
 func (f *File) Save() error {
 	if f.Filename == "" {
-		return errors.New("no filename supplied")
+		return ErrNoFilenameSupplied
 	}
-
 	return f.Write(f.Filename)
 }
 
-// sanitizeData sanitizes the file data from source by ensuring there is at
-// least one blank line in the stream.
-func sanitizeData(r io.Reader) ([]byte, error) {
-	// read all data in
-	data, err := ioutil.ReadAll(r)
-	if err != nil {
-		return nil, err
-	}
-
-	// add '\n' to end of data if not present
-	if len(data) < 1 || !bytes.Equal(data[len(data)-1:], []byte("\n")) {
-		data = append(data, '\n')
-	}
-
-	return data, nil
-}
-
-// parse passes the filename/reader to ini.Parser.Parse.
-func parse(name, filename string, r io.Reader) (*File, error) {
-	// sanitize data first (make sure file ends with '\n')
-	data, err := sanitizeData(r)
+// Parse passes the filename/reader to ini.Parser.Parse.
+func Parse(name, filename string, r io.Reader) (*File, error) {
+	// sanitize data first (ensure file ends with '\n')
+	buf, err := fixEnding(r)
 	if err != nil {
 		return nil, err
 	}
 
 	// pass through ini/parser package
-	d, err := parser.Parse(name, data)
+	f, err := parser.Parse(name, buf)
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse %s: %s", name, parser.LastError().Error())
+		return nil, &ParseError{name, parser.LastError()}
 	}
 
 	// convert to *parser.File
-	inifile, ok := d.(*parser.File)
+	inifile, ok := f.(*parser.File)
 	if !ok {
-		return nil, fmt.Errorf("unknown error encountered while parsing %s: %s", name, parser.LastError().Error())
+		return nil, &ParseError{name, parser.LastError()}
 	}
 
-	// create file
-	file := &File{
+	return &File{
 		File:     inifile,
 		Filename: filename,
-	}
-
-	return file, nil
+	}, nil
 }
 
-// Load ini file from a io.Reader.
+// Load loads ini file from a io.Reader.
 func Load(r io.Reader) (*File, error) {
-	return parse("<io.Reader>", "", r)
+	return Parse("<io.Reader>", "", r)
+}
+
+// LoadBytes loads ini file from a byte slice.
+func LoadBytes(buf []byte) (*File, error) {
+	return Parse("<buffer>", "", bytes.NewReader(buf))
 }
 
 // LoadString loads ini file from string.
-func LoadString(inistr string) (*File, error) {
-	r := strings.NewReader(inistr)
-	return parse("<string>", "", r)
+func LoadString(str string) (*File, error) {
+	return Parse("<string>", "", strings.NewReader(str))
 }
 
 // LoadFile loads ini data from a file with specified filename.
@@ -124,5 +125,20 @@ func LoadFile(filename string) (*File, error) {
 	}
 	defer f.Close()
 
-	return parse(filename, filename, f)
+	return Parse(filename, filename, f)
+}
+
+// fixEnding fixes the file data in r, ensuring the file ends with \n.
+func fixEnding(r io.Reader) ([]byte, error) {
+	// read
+	buf, err := ioutil.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+
+	// add '\n' to end if not present
+	if len(buf) == 0 || buf[len(buf)-1] != '\n' {
+		return append(buf, '\n'), nil
+	}
+	return buf, nil
 }

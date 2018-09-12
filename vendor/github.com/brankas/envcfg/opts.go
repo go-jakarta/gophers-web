@@ -52,3 +52,31 @@ func CertPathKey(key string) Option {
 		ec.certPathKey = key
 	}
 }
+
+// CertWaitKey is an option that sets the server certificate wait key.
+func CertWaitKey(key string) Option {
+	return func(ec *Envcfg) {
+		ec.certWaitKey = key
+	}
+}
+
+// CertDelayKey is an option that sets the server certificate delay key.
+func CertDelayKey(key string) Option {
+	return func(ec *Envcfg) {
+		ec.certDelayKey = key
+	}
+}
+
+// Logf is an option that sets the log handler.
+func Logf(f func(string, ...interface{})) Option {
+	return func(ec *Envcfg) {
+		ec.logf = f
+	}
+}
+
+// Errorf is an option that sets the error log handler.
+func Errorf(f func(string, ...interface{})) Option {
+	return func(ec *Envcfg) {
+		ec.errf = f
+	}
+}

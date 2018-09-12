@@ -19,7 +19,6 @@ import (
 //		f.SectionNameFunc = ini.GitSectionNameFunc
 func GitSectionManipFunc(name string) string {
 	n, sub := parser.NameSplitFunc(name)
-
 	if n == "" {
 		n = sub
 		sub = ""
@@ -33,9 +32,11 @@ func GitSectionManipFunc(name string) string {
 	if sub != "" {
 		s = fmt.Sprintf(" \"%s\"", sub)
 	}
-
-	return fmt.Sprintf("%s%s", n, s)
+	return n + s
 }
+
+// spaceOrTabRE is regexp used for cleaning git section names.
+var spaceOrTabRE = regexp.MustCompile(`[ \t]+`)
 
 // GitSectionNameFunc is a helper method to manipulate section names in ini
 // files in a Gitconfig compatible way and provides subsection functionality.
@@ -52,6 +53,6 @@ func GitSectionNameFunc(name string) string {
 	// remove " from string
 	n := strings.Replace(strings.TrimSpace(name), "\"", "", -1)
 
-	// replace any spacing with .
-	return regexp.MustCompile("[ \t]+").ReplaceAllString(n, parser.DefaultNameKeySeparator)
+	// replace any space or tab with .
+	return spaceOrTabRE.ReplaceAllString(n, parser.DefaultNameKeySeparator)
 }

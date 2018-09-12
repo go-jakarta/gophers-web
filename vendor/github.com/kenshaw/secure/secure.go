@@ -27,10 +27,26 @@ package secure
 //go:generate go run gen-readme.go > README.md
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
+)
+
+// Error is a secure error.
+type Error string
+
+// Error satisfies the error interface.
+func (err Error) Error() string {
+	return string(err)
+}
+
+// Error values.
+const (
+	// ErrBadHost is the bad host error.
+	ErrBadHost Error = "bad host"
+
+	// ErrHTTPSRedirect is the https redirect error.
+	ErrHTTPSRedirect Error = "https redirect"
 )
 
 // Middleware that sets basic security headers and provides simple security
@@ -160,7 +176,7 @@ func (s *Middleware) Handler(h http.Handler) http.Handler {
 func (s *Middleware) HandlerFuncWithNext(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 	err := s.Process(w, r)
 
-	// If there was an error, do not call next.
+	// if there was an error, do not call next
 	if err == nil && next != nil {
 		next(w, r)
 	}
@@ -180,7 +196,7 @@ func (s *Middleware) Process(w http.ResponseWriter, r *http.Request) error {
 
 	// allowed hosts check
 	if len(s.AllowedHosts) > 0 && !s.DevEnvironment {
-		isGoodHost := false
+		var isGoodHost bool
 		for _, allowedHost := range s.AllowedHosts {
 			if strings.EqualFold(allowedHost, host) {
 				isGoodHost = true
@@ -194,7 +210,7 @@ func (s *Middleware) Process(w http.ResponseWriter, r *http.Request) error {
 			} else {
 				DefaultBadHostHandler(w, r)
 			}
-			return errors.New("bad host")
+			return ErrBadHost
 		}
 	}
 
@@ -225,7 +241,7 @@ func (s *Middleware) Process(w http.ResponseWriter, r *http.Request) error {
 		}
 
 		http.Redirect(w, r, url.String(), status)
-		return fmt.Errorf("https redirect")
+		return ErrHTTPSRedirect
 	}
 
 	// only add Strict-Transport-Security header when we know it's an ssl
@@ -233,7 +249,7 @@ func (s *Middleware) Process(w http.ResponseWriter, r *http.Request) error {
 	//
 	// see: https://tools.ietf.org/html/rfc6797#section-7.2
 	if s.STSSeconds != 0 && (isSSL || s.ForceSTSHeader) && !s.DevEnvironment {
-		stsSub := ""
+		var stsSub string
 		if s.STSIncludeSubdomains {
 			stsSub = "; includeSubdomains"
 		}
