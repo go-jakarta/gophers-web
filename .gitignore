@@ -4,3 +4,4 @@
 /.cache/
 /dist/
 /build/
+/yarn-error.log
