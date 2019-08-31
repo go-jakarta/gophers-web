@@ -1,4 +1,6 @@
-/locales/*.go
 /assets.go
-*.html.go
+/manifest.go
+/locales/locales.go
+/geoip/geoip.go
+/templates/*.html.go
 *.mo

@@ -63,7 +63,7 @@ Page {
 
   <title>GoJakarta{% if title != "" %}{%s= " - " + title %}{% endif %}</title>
 
-  <link rel="stylesheet" href="{%s= Asset(`app.css`) %}">
+  <link rel="stylesheet" href="{%s= Asset(`css/app.css`) %}">
 
   {%= p.ExtraHeaders(T) %}
 
@@ -128,7 +128,7 @@ Page {
 </footer>
 
 <!-- scripts -->
-<script src="{%s= Asset(`app.js`) %}"></script>
+<script src="{%s= Asset(`js/app.js`) %}"></script>
 
 <!-- google analytics -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=UA-109672752-1"></script>

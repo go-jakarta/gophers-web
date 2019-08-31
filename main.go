@@ -1,7 +1,7 @@
 // gophers-web is the web server for gophers.id.
 package main
 
-//go:generate go run gen.go
+//go:generate assetgen
 
 import (
 	"bytes"
@@ -19,8 +19,6 @@ import (
 	"github.com/NYTimes/gziphandler"
 	"github.com/brankas/envcfg"
 	"github.com/brankas/stringid"
-	"github.com/brankas/wutil"
-	"github.com/eladmica/go-meetup/meetup"
 	"github.com/golang/gddo/httputil/header"
 	"github.com/gorilla/csrf"
 	"github.com/kenshaw/gojiid"
@@ -28,18 +26,18 @@ import (
 	"github.com/kenshaw/secure"
 	"github.com/leonelquinteros/gotext"
 	maxminddb "github.com/oschwald/maxminddb-golang"
+	"github.com/shurcooL/httpgzip"
 	"github.com/sirupsen/logrus"
 	"github.com/tylerb/graceful"
-
-	// goji
 	"goji.io"
 	"goji.io/pat"
+	"goji.io/pattern"
 
 	// assets
-	wwwdata "gophers.id/gophers-web/assets"
-	wwwgeo "gophers.id/gophers-web/assets/geoip"
-	wwwloc "gophers.id/gophers-web/assets/locales"
-	wwwtpl "gophers.id/gophers-web/assets/templates"
+	"gophers.id/gophers-web/assets"
+	"gophers.id/gophers-web/assets/geoip"
+	"gophers.id/gophers-web/assets/locales"
+	"gophers.id/gophers-web/assets/templates"
 )
 
 // general config and flags
@@ -51,23 +49,17 @@ var (
 	// globals
 	logger *logrus.Logger // master log
 
-	// assets
-	assetSet *wutil.AssetSet
-
 	// config
 	config *envcfg.Envcfg
 
 	// geoip
-	geoip *maxminddb.Reader
+	geoipdb *maxminddb.Reader
 
 	// translations
 	translations map[string]*gotext.Po
 
-	// meetup client
-	meetupClient *meetup.Client
-
 	// indexPage
-	indexPage wwwtpl.Page
+	indexPage templates.Page
 )
 
 func init() {
@@ -100,34 +92,16 @@ func init() {
 	}
 
 	// init geoip data
-	geoip, err = initGeoIP()
+	geoipdb, err = initGeoip()
 	if err != nil {
 		logger.Fatal(err)
 	}
-
-	// setup meetup client and events
-	meetupClient = meetup.NewClient(nil)
-	meetupClient.Authentication = meetup.NewKeyAuth(config.GetKey("meetup.token"))
-	meetupEvents, err := meetupClient.GetEvents("GoJakarta", nil)
-	if err != nil {
-		logger.Fatal(err)
-	}
-
-	logger.Printf("loaded %d events", len(meetupEvents))
 
 	// update every hour the event information
 	mapsToken := config.GetKey("google.mapstoken")
-	indexPage = &wwwtpl.IndexPage{meetupEvents, mapsToken}
+	indexPage = &templates.IndexPage{GoogleMapsToken: mapsToken}
 	go func() {
 		time.Sleep(1 * time.Hour)
-
-		events, err := meetupClient.GetEvents("GoJakarta", nil)
-		if err != nil {
-			logger.Error(err)
-		} else {
-			logger.Printf("retrieved %d events", len(events))
-			indexPage = &wwwtpl.IndexPage{events, mapsToken}
-		}
 	}()
 }
 
@@ -147,11 +121,11 @@ func main() {
 
 }
 
-func initGeoIP() (*maxminddb.Reader, error) {
+func initGeoip() (*maxminddb.Reader, error) {
 	var err error
 
 	// load geoip data
-	gz, err := wwwgeo.Asset("GeoLite2-Country.mmdb.gz")
+	gz, err := loadasset("GeoLite2-Country.mmdb.gz", geoip.Geoip)
 	if err != nil {
 		return nil, err
 	}
@@ -171,51 +145,28 @@ func initGeoIP() (*maxminddb.Reader, error) {
 
 // setup static assets
 func setupAssets() error {
-	var err error
-
-	opts := []wutil.AssetSetOption{
-		wutil.Logger(logger.Printf),
-		wutil.Csrf(func(req *http.Request) string {
-			return string(csrf.TemplateField(req))
-		}),
-	}
-	if !isDevEnv {
-		opts = append(opts, wutil.Ignore(regexp.MustCompile(`\.map$`)))
-	}
-
-	// create asset set
-	assetSet, err = wutil.NewAssetSet(
-		wwwdata.AssetNames,
-		wwwdata.Asset,
-		wwwdata.AssetInfo,
-		opts...,
-	)
-	if err != nil {
-		return err
-	}
-
 	// create locales storage
 	translations = map[string]*gotext.Po{
-		"en": &gotext.Po{},
-		"id": &gotext.Po{},
-		"es": &gotext.Po{},
+		"en": {},
+		"id": {},
 	}
 
 	// load translations
 	for l, po := range translations {
-		buf, err := wwwloc.Asset(l + ".po")
+		buf, err := loadasset(l+".po", locales.Locales)
 		if err != nil {
 			return err
 		}
-
 		po.Parse(buf)
 	}
 
 	logger.Printf("processed %d translations", len(translations))
 
 	// set template stuff
-	wwwtpl.Asset = assetSet.AssetPath
-	wwwtpl.CsrfToken = func(req *http.Request) string {
+	templates.Asset = func(fn string) string {
+		return "/_/" + assets.ManifestPath("/"+strings.TrimPrefix(fn, "/"))
+	}
+	templates.CsrfToken = func(req *http.Request) string {
 		return string(csrf.TemplateField(req))
 	}
 
@@ -264,7 +215,7 @@ func setupServer() *graceful.Server {
 			// add values to context
 			ctxt = context.WithValue(ctxt, loggerKey, logger.WithFields(fields))
 			ctxt = context.WithValue(ctxt, countryKey, country)
-			ctxt = context.WithValue(ctxt, wwwtpl.LanguageKey, lang)
+			ctxt = context.WithValue(ctxt, templates.LanguageKey, lang)
 
 			next.ServeHTTP(res, req.WithContext(ctxt))
 		}
@@ -309,15 +260,12 @@ func setupServer() *graceful.Server {
 	// add gzip compression
 	mux.Use(gziphandler.GzipHandler)
 
-	// add general utility handlers
-	wutil.RegisterUtils(mux)
-
 	// add static assets
-	assetSet.Register(mux)
+	mux.Handle(pat.New("/_/*"), assets.StaticHandler(pattern.Path))
 
 	// add template pages
 	idTrans := translator("id")
-	transMap := map[string]wwwtpl.TransFunc{
+	transMap := map[string]templates.TransFunc{
 		"id": idTrans,
 		"en": translator("en"),
 		"es": translator("es"),
@@ -357,7 +305,7 @@ func setupServer() *graceful.Server {
 			http.Redirect(res, req, "https://github.com/go-jakarta/slides", http.StatusMovedPermanently)
 
 		case "index", "index.html", "":
-			wwwtpl.Do(res, req, indexPage, idTrans, transMap)
+			templates.Do(res, req, indexPage, idTrans, transMap)
 
 		default:
 			http.NotFound(res, req)
@@ -383,7 +331,8 @@ func setupServer() *graceful.Server {
 
 // lookupCountry returns the geoip country.
 func lookupCountry(remoteAddr string) string {
-	a := net.ParseIP(remoteAddr)
+	host, _, _ := net.SplitHostPort(remoteAddr)
+	a := net.ParseIP(host)
 	if a == nil {
 		return "id"
 	}
@@ -394,7 +343,7 @@ func lookupCountry(remoteAddr string) string {
 		} `maxminddb:"country"`
 	}
 
-	err := geoip.Lookup(a, &rec)
+	err := geoipdb.Lookup(a, &rec)
 	if err != nil || rec.Country.ISOCode == "" {
 		return "id"
 	}
@@ -450,7 +399,7 @@ func extractLocale(res http.ResponseWriter, req *http.Request) (string, string) 
 	return "id", country
 }
 
-func translator(lang string) wwwtpl.TransFunc {
+func translator(lang string) templates.TransFunc {
 	get := translations[lang].Get
 
 	if lang == "en" {
@@ -482,3 +431,25 @@ const (
 Allow: *
 `
 )
+
+func loadasset(fn string, fs http.FileSystem) ([]byte, error) {
+	fn = "/" + strings.TrimPrefix(fn, "/")
+
+	f, err := fs.Open(fn)
+	if err != nil {
+		return nil, err
+	}
+
+	switch x := f.(type) {
+	case httpgzip.GzipByter:
+		gz, err := gzip.NewReader(bytes.NewReader(x.GzipBytes()))
+		if err != nil {
+			return nil, fmt.Errorf("unable to decode asset %s", fn)
+		}
+		return ioutil.ReadAll(gz)
+
+	case httpgzip.NotWorthGzipCompressing:
+		return ioutil.ReadAll(f)
+	}
+	return nil, fmt.Errorf("unknown type for asset %s", fn)
+}

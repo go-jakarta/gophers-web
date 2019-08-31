@@ -1,7 +1,10 @@
 /gophers-web
 /gophers-web.exe
-/node_modules/
-/.cache/
-/dist/
-/build/
+/node_modules
+
 /yarn-error.log
+
+/.cache
+/build
+
+.DS_Store

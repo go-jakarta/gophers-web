@@ -1,0 +1,5 @@
+sassIncludeNodeModules()
+sassInclude("bootswatch")
+sassInclude("bootstrap")
+staticDir("fonts")
+js("app.js", npmjs("jquery"), npmjs("popper.js", "dist/umd/popper.js"), "app.js")

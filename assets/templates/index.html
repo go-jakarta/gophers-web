@@ -1,13 +1,13 @@
 {% import (
   "regexp"
   "time"
-
-  "github.com/eladmica/go-meetup/meetup"
+  "sync"
 ) %}
 {% code
   type IndexPage struct {
-    Events []*meetup.Event
+    Events []*Event
     GoogleMapsToken string
+    sync.RWMutex
   }
 
   var (
@@ -27,6 +27,8 @@
 </style>
 {% endfunc %}
 {% func (p *IndexPage) Content(T TransFunc) %}{% code
+    p.RLock()
+    defer p.RUnlock()
 %}
 <div class="jumbotron">
   <h1 class="display-3">GoJakarta</h1>
@@ -39,7 +41,7 @@
   {% if len(p.Events) > 0 %}{% code
     event := p.Events[0]
 
-    t := time.Unix(0, int64(event.Time)*int64(time.Millisecond)).In(jakarta)
+    t := event.Time.In(jakarta)
     days := []string{
       T(`Sunday`),
       T(`Monday`), T(`Tuesday`), T(`Wednesday`),
@@ -78,7 +80,10 @@
   {% endif %}
 </div>
 {% endfunc %}
-{% func (p *IndexPage) ExtraScripts(T TransFunc) %}
+{% func (p *IndexPage) ExtraScripts(T TransFunc) %}{%code
+  p.RLock()
+  defer p.RUnlock()
+%}
 {% if len(p.Events) > 0 && p.Events[0].Venue != nil %}{% code
   venue := p.Events[0].Venue
 %}
