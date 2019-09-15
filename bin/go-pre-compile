@@ -1,4 +1,4 @@
 #!/bin/bash
-
 go install github.com/brankas/assetgen
-go generate
+/tmp/build/bin/assetgen \
+  -cache /storage
