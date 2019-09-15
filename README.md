@@ -15,11 +15,11 @@ $ cd $GOPATH/src/gophers.id/gophers-web
 # copy environment config
 $ cp env/sample.config env/config
 
-# install dependencies and generate assets
-$ yarn
+# install assetgen (used for generating static assets)
+$ go get -u github.com/brankas/assetgen
 
 # build executable and run
-$ go build && ./gophers-web
+$ go generate && go build && ./gophers-web
 ```
 
 ## Updating Templates + Translation Messages
