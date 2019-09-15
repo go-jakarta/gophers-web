@@ -3,7 +3,7 @@ module gophers.id/gophers-web
 require (
 	cloud.google.com/go v0.46.2 // indirect
 	github.com/NYTimes/gziphandler v1.1.1
-	github.com/brankas/assetgen v0.0.0-20190915012220-8303f07921c8
+	github.com/brankas/assetgen v0.0.0-20190915020913-516fa8d96423
 	github.com/brankas/envcfg v0.1.0
 	github.com/brankas/git-buildnumber v0.0.0-20190405072123-d52ef46b19af
 	github.com/brankas/sentinel v0.1.1 // indirect

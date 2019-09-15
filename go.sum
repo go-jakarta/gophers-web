@@ -21,8 +21,8 @@ github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239 h1:kFOfPq6dUM1hTo
 github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239/go.mod h1:2FmKhYUyUczH0OGQWaF5ceTx0UBShxjsH6f8oGKYe2c=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5 h1:0CwZNZbxp69SHPdPJAN/hZIm0C4OItdklCFmMRWYpio=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5/go.mod h1:wHh0iHkYZB8zMSxRWpUBQtwG5a7fFgvEO+odwuTv2gs=
-github.com/brankas/assetgen v0.0.0-20190915012220-8303f07921c8 h1:xxmimECsK8rlSb+oZ9Hgbs6Fcr7n8ZdAc8WqixUpadM=
-github.com/brankas/assetgen v0.0.0-20190915012220-8303f07921c8/go.mod h1:IqW0gdUBxDtN9HgHSkB3ARkiTNPGljsYR7C1Z99G+Gw=
+github.com/brankas/assetgen v0.0.0-20190915020913-516fa8d96423 h1:b8PReohh9JGdxOJpdp18VEUgjiLgzDEm2SCu4qRV2TU=
+github.com/brankas/assetgen v0.0.0-20190915020913-516fa8d96423/go.mod h1:IqW0gdUBxDtN9HgHSkB3ARkiTNPGljsYR7C1Z99G+Gw=
 github.com/brankas/autocertdns v0.0.0-20180806084514-7ff699412a4d h1:C5uXCaJrp5OU2IpVnznVpLtAj5NVQXjP7/Y15YIMwfk=
 github.com/brankas/autocertdns v0.0.0-20180806084514-7ff699412a4d/go.mod h1:Ua3M/yKg6c3IKM7MFCeknOoKYPF3+1iY161dm3N8iJU=
 github.com/brankas/envcfg v0.1.0 h1:0/gJ6KfA0TBBJ5V1cnvhpLwplH8PPCLvfdJPwf055mw=
