@@ -105,8 +105,6 @@ github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 h1:BQSFePA1RWJOl
 github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99/go.mod h1:1lJo3i6rXxKeerYnT8Nvf0QmHCRC1n8sfWVwXF2Frvo=
 github.com/jessevdk/go-flags v1.4.0/go.mod h1:4FA24M0QyGHXBuZZK/XkWh8h0e1EYbRYJSGM75WSRxI=
 github.com/jstemmer/go-junit-report v0.0.0-20190106144839-af01ea7f8024/go.mod h1:6v2b51hI/fHJwM22ozAgKL4VKDeJcHhJFhtBdhmNjmU=
-github.com/kenshaw/gojiid v0.0.0-20170710044130-982f5f15c83b h1:IojAvAojtoaOmH3V8VcSquhOL2QqmeYMAidPx+Ocu5Q=
-github.com/kenshaw/gojiid v0.0.0-20170710044130-982f5f15c83b/go.mod h1:OHuzPy6s2NVuwJ+ZEkO3lCI3FsEmOcLE2VxHVHItaWk=
 github.com/kenshaw/logrusmw v0.0.0-20180513035142-476e6892bf0a h1:7ZW29jZ2N1q3MexbrDwPDGMgnmiLp/PMV+vaxI4g8Xw=
 github.com/kenshaw/logrusmw v0.0.0-20180513035142-476e6892bf0a/go.mod h1:VtddtH7JFHaT6ireST3Ng39DE2X2KTPeftxGjRwBzTs=
 github.com/kenshaw/secure v0.0.0-20181217163002-d9facd3a9b63 h1:aslg6h11Feqa3Bmu/IiNrEbSp+Y750hyT9AHE5dXI8M=

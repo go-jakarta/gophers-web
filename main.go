@@ -21,7 +21,6 @@ import (
 	"github.com/brankas/stringid"
 	"github.com/golang/gddo/httputil/header"
 	"github.com/gorilla/csrf"
-	"github.com/kenshaw/gojiid"
 	"github.com/kenshaw/logrusmw"
 	"github.com/kenshaw/secure"
 	"github.com/leonelquinteros/gotext"
@@ -187,7 +186,7 @@ func setupServer() *graceful.Server {
 	mux := goji.NewMux()
 
 	// add logger
-	mux.Use(gojiid.NewRequestId())
+	mux.Use(stringid.Middleware())
 	mux.Use(func(next http.Handler) http.Handler {
 		mw := func(res http.ResponseWriter, req *http.Request) {
 			if !isDevEnv {
@@ -204,7 +203,7 @@ func setupServer() *graceful.Server {
 
 			// create logger fields
 			fields := logrus.Fields{
-				"req_id": gojiid.FromContext(ctxt),
+				"req_id": stringid.FromContext(ctxt),
 				"l":      lang,
 				"loc":    country,
 			}

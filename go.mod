@@ -14,7 +14,6 @@ require (
 	github.com/google/go-cmp v0.3.1 // indirect
 	github.com/google/uuid v1.1.1 // indirect
 	github.com/gorilla/csrf v1.6.1
-	github.com/kenshaw/gojiid v0.0.0-20170710044130-982f5f15c83b
 	github.com/kenshaw/logrusmw v0.0.0-20180513035142-476e6892bf0a
 	github.com/kenshaw/secure v0.0.0-20181217163002-d9facd3a9b63
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
