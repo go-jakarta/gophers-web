@@ -6,6 +6,7 @@ require (
 	github.com/brankas/assetgen v0.0.0-20190915020913-516fa8d96423
 	github.com/brankas/envcfg v0.1.0
 	github.com/brankas/git-buildnumber v0.0.0-20190405072123-d52ef46b19af
+	github.com/brankas/goji v0.0.0-20190915034922-51b02fe52699
 	github.com/brankas/sentinel v0.1.1 // indirect
 	github.com/brankas/stringid v0.0.0-20180515093455-3d3c553d8e97
 	github.com/codegangsta/negroni v1.0.0 // indirect
@@ -28,7 +29,6 @@ require (
 	github.com/tylerb/graceful v1.2.15
 	github.com/valyala/quicktemplate v1.2.0
 	go.opencensus.io v0.22.1 // indirect
-	goji.io v2.0.2+incompatible
 	golang.org/x/sys v0.0.0-20190913121621-c3b328c6e5a7 // indirect
 	google.golang.org/api v0.10.0 // indirect
 	google.golang.org/appengine v1.6.2 // indirect

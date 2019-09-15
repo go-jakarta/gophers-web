@@ -18,6 +18,7 @@ import (
 
 	"github.com/NYTimes/gziphandler"
 	"github.com/brankas/envcfg"
+	"github.com/brankas/goji"
 	"github.com/brankas/stringid"
 	"github.com/golang/gddo/httputil/header"
 	"github.com/gorilla/csrf"
@@ -28,9 +29,6 @@ import (
 	"github.com/shurcooL/httpgzip"
 	"github.com/sirupsen/logrus"
 	"github.com/tylerb/graceful"
-	"goji.io"
-	"goji.io/pat"
-	"goji.io/pattern"
 
 	// assets
 	"gophers.id/gophers-web/assets"
@@ -183,7 +181,7 @@ const (
 func setupServer() *graceful.Server {
 	logger.Infof("initializing middleware (environment: %s)", env)
 
-	mux := goji.NewMux()
+	mux := goji.New()
 
 	// add logger
 	mux.Use(stringid.Middleware())
@@ -260,7 +258,7 @@ func setupServer() *graceful.Server {
 	mux.Use(gziphandler.GzipHandler)
 
 	// add static assets
-	mux.Handle(pat.New("/_/*"), assets.StaticHandler(pattern.Path))
+	mux.Handle(goji.NewPathSpec("/_/*"), assets.StaticHandler(goji.Path))
 
 	// add template pages
 	idTrans := translator("id")
@@ -271,11 +269,11 @@ func setupServer() *graceful.Server {
 	}
 
 	// robots.txt
-	mux.HandleFunc(pat.Get("/robots.txt"), func(res http.ResponseWriter, req *http.Request) {
+	mux.HandleFunc(goji.Get("/robots.txt"), func(res http.ResponseWriter, req *http.Request) {
 		fmt.Fprintln(res, robotsTxt)
 	})
 
-	mux.HandleFunc(pat.Get("/*"), func(res http.ResponseWriter, req *http.Request) {
+	mux.HandleFunc(goji.Get("/*"), func(res http.ResponseWriter, req *http.Request) {
 		// handle the go-get stuff
 		if req.URL.Query().Get("go-get") == "1" {
 			repo := strings.TrimPrefix(req.URL.Path, "/")
