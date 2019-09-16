@@ -1,16 +1,16 @@
 module gophers.id/gophers-web
 
 require (
-	cloud.google.com/go v0.46.2 // indirect
+	cloud.google.com/go v0.46.3 // indirect
 	github.com/NYTimes/gziphandler v1.1.1
-	github.com/brankas/assetgen v0.0.0-20190915020913-516fa8d96423
+	github.com/brankas/assetgen v0.0.0-20190916231213-48b94b535686
 	github.com/brankas/envcfg v0.1.0
 	github.com/brankas/git-buildnumber v0.0.0-20190405072123-d52ef46b19af
 	github.com/brankas/goji v0.0.0-20190915034922-51b02fe52699
 	github.com/brankas/sentinel v0.1.1 // indirect
 	github.com/brankas/stringid v0.0.0-20180515093455-3d3c553d8e97
 	github.com/codegangsta/negroni v1.0.0 // indirect
-	github.com/digitalocean/godo v1.20.0 // indirect
+	github.com/digitalocean/godo v1.21.0 // indirect
 	github.com/golang/gddo v0.0.0-20190904175337-72a348e765d2
 	github.com/google/go-cmp v0.3.1 // indirect
 	github.com/google/uuid v1.1.1 // indirect
@@ -29,9 +29,11 @@ require (
 	github.com/tylerb/graceful v1.2.15
 	github.com/valyala/quicktemplate v1.2.0
 	go.opencensus.io v0.22.1 // indirect
-	golang.org/x/sys v0.0.0-20190913121621-c3b328c6e5a7 // indirect
+	golang.org/x/net v0.0.0-20190916140828-c8589233b77d // indirect
+	golang.org/x/sys v0.0.0-20190916202348-b4ddaad3f8a3 // indirect
 	google.golang.org/api v0.10.0 // indirect
 	google.golang.org/appengine v1.6.2 // indirect
+	google.golang.org/genproto v0.0.0-20190916214212-f660b8655731 // indirect
 	google.golang.org/grpc v1.23.1 // indirect
 	gopkg.in/src-d/go-git.v4 v4.13.1 // indirect
 )
