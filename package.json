@@ -20,6 +20,6 @@
     "popper.js": "^1.16.1",
     "postcss-cli": "^7.1.0",
     "source-map": "^0.7.3",
-    "uglify-js": "^3.7.7"
+    "uglify-js": "^3.8.0"
   }
 }
