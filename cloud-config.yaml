@@ -1,0 +1,29 @@
+#cloud-config
+apt:
+  sources:
+    docker:
+      keyid: '9DC8 5822 9FC7 DD38 854A E2D8 8D81 803C 0EBF CD88'
+      source: 'deb [arch=amd64] https://download.docker.com/linux/ubuntu $RELEASE stable'
+    dokku:
+      keyid: '0027 A6FC E4DE B304 104D 2D13 F1FF 6851 288B 3315'
+      source: 'deb https://packagecloud.io/dokku/dokku/ubuntu/ $RELEASE main'
+package_update: true
+package_upgrade: true
+packages:
+  - ufw
+  - build-essential
+  - dnsutils
+  - docker-ce
+  - git
+  - dokku
+runcmd:
+  - ufw allow ssh
+  - ufw allow http
+  - ufw allow https
+  - ufw enable
+  - adduser ubuntu docker
+  - echo "dokku dokku/hostname string gophers.id" |debconf-set-selections
+  - echo "dokku dokku/skip_key_file boolean true" |debconf-set-selections
+  - dokku plugin:install-dependencies --core
+power_state:
+  mode: reboot
