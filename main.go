@@ -82,7 +82,7 @@ func init() {
 	// change environment for development
 	if isDevEnv {
 		tf := new(logrus.TextFormatter)
-		//tf.ForceColors = logrus.IsTerminal()
+		// tf.ForceColors = logrus.IsTerminal()
 		tf.FullTimestamp = true
 
 		logger.Formatter = tf
@@ -115,7 +115,6 @@ func main() {
 	if err != nil {
 		logger.Fatal(err)
 	}
-
 }
 
 func initGeoip() (*maxminddb.Reader, error) {
@@ -235,7 +234,7 @@ func setupServer() *graceful.Server {
 		secure.FrameDeny(true),
 		secure.ContentTypeNosniff(true),
 		secure.BrowserXSSFilter(true),
-		//secure.ContentSecurityPolicy: "default-src 'self'", // TODO: fix this
+		// secure.ContentSecurityPolicy: "default-src 'self'", // TODO: fix this
 		secure.DevEnvironment(isDevEnv), // toggle development depending on environment
 		secure.BadHostHandler(func(res http.ResponseWriter, req *http.Request) {
 			http.Redirect(res, req, "https://gophers.id/", http.StatusMovedPermanently)
