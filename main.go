@@ -1,3 +1,5 @@
+// +heroku goVersion go1.15
+
 // gophers-web is the web server for gophers.id.
 package main
 

@@ -22,8 +22,24 @@ runcmd:
   - ufw allow https
   - ufw enable
   - adduser ubuntu docker
-  - echo "dokku dokku/hostname string gophers.id" |debconf-set-selections
-  - echo "dokku dokku/skip_key_file boolean true" |debconf-set-selections
+  - sed -i -e 's/AllowUsers.*/AllowUsers ubuntu dokku/' /etc/ssh/sshd_config
+  - curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/bin/docker-compose
+  - chmod +x /usr/bin/docker-compose
   - dokku plugin:install-dependencies --core
+  - dokku plugin:install https://github.com/dokku/dokku-letsencrypt.git
+  - dokku apps:create gophers-web
+  - dokku storage:mount gophers-web /var/lib/dokku/data/storage/gophers-web:/storage
+  - dokku domains:add gophers-web gophers.id
+  - dokku domains:set gophers-web gophers.id www.gophers.id
+  - dokku domains:enable gophers-web
+  - dokku config:set --no-restart gophers-web DOKKU_LETSENCRYPT_EMAIL=admin@gophers.id
+  - dokku letsencrypt gophers-web
+  - dokku letsencrypt:cron-job --add
+  - i=0; cat /home/ubuntu/.ssh/authorized_keys|(while read line; do ((i=i+1)); echo "$line"|dokku ssh-keys:add $(echo "$line"|awk '{print $3}'|tr '@' '-'); done)
+  - mkdir -p /home/ubuntu/src
+  - git clone https://github.com/kenshaw/shell-config.git /home/ubuntu/src/shell-config
+  - chown ubuntu:ubuntu -R /home/ubuntu
+  - su ubuntu -c 'rm ~/.bashrc && ~/src/shell-config/setup.sh'
+  - /home/ubuntu/src/shell-config/scripts/go-setup.sh -u -c -f
 power_state:
   mode: reboot

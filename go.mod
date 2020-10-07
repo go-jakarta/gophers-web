@@ -3,9 +3,9 @@ module gophers.id/gophers-web
 require (
 	cloud.google.com/go v0.54.0 // indirect
 	github.com/NYTimes/gziphandler v1.1.1
-	github.com/brankas/assetgen v0.0.0-20200202213138-f65a50a1f18a
+	github.com/brankas/assetgen v0.0.0-20201006234916-ee193f87eff1
 	github.com/brankas/envcfg v0.1.0
-	github.com/brankas/git-buildnumber v0.0.0-20200202205341-7c26e196a668
+	github.com/brankas/git-buildnumber v0.0.0-20200804233921-9716d220d268
 	github.com/brankas/goji v0.1.0
 	github.com/brankas/sentinel v0.1.3 // indirect
 	github.com/brankas/stringid v0.0.0-20191001010012-baeeb709f50a
@@ -13,6 +13,7 @@ require (
 	github.com/digitalocean/godo v1.32.0 // indirect
 	github.com/golang/gddo v0.0.0-20200310004957-95ce5a452273
 	github.com/gorilla/csrf v1.6.2
+	github.com/imdario/mergo v0.3.11 // indirect
 	github.com/kenshaw/logrusmw v0.0.0-20180513035142-476e6892bf0a
 	github.com/kenshaw/secure v0.0.0-20181217163002-d9facd3a9b63
 	github.com/knq/ini v0.0.0-20191206014339-58b5e74713e0 // indirect
@@ -25,8 +26,8 @@ require (
 	github.com/shurcooL/httpgzip v0.0.0-20190720172056-320755c1c1b0
 	github.com/sirupsen/logrus v1.4.2
 	github.com/tylerb/graceful v1.2.15
-	github.com/valyala/quicktemplate v1.4.1
-	golang.org/x/crypto v0.0.0-20200302210943-78000ba7a073 // indirect
+	github.com/valyala/quicktemplate v1.6.3
+	golang.org/x/sys v0.0.0-20201006155630-ac719f4daadf // indirect
 	google.golang.org/genproto v0.0.0-20200309141739-5b75447e413d // indirect
 )
 
