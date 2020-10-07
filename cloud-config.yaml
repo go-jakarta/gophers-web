@@ -7,6 +7,11 @@ apt:
     dokku:
       keyid: '0027 A6FC E4DE B304 104D 2D13 F1FF 6851 288B 3315'
       source: 'deb https://packagecloud.io/dokku/dokku/ubuntu/ $RELEASE main'
+  debconf_selections:
+    dokku: |
+      dokku dokku/web_config boolean false
+      dokku dokku/hostname string gophers.id
+      dokku dokku/skip_key_file boolean true
 package_update: true
 package_upgrade: true
 packages:
@@ -28,8 +33,13 @@ runcmd:
   - dokku plugin:install-dependencies --core
   - dokku plugin:install https://github.com/dokku/dokku-letsencrypt.git
   - dokku apps:create gophers-web
+  - mkdir -p /var/lib/dokku/data/storage/gophers-web
+  - chown -R 32767:32767 /var/lib/dokku/data/storage/gophers-web
   - dokku storage:mount gophers-web /var/lib/dokku/data/storage/gophers-web:/storage
+  - dokku docker-options:add gophers-web build "-v /var/lib/dokku/data/storage/gophers-web:/storage"
   - dokku domains:add gophers-web gophers.id
+  - dokku config:set gophers-web APP_CONFIG=W3J1bnRpbWVdCmVudmlyb25tZW50PSIkRU5WfHxwcm9kdWN0aW9uIgpbc2VydmVyXQpwb3J0PSIkUE9SVHx8MzAwMCIKY3NyZnRva2VuPSIkQ1NSRlRPS0VOIgpbZ29vZ2xlXQptYXBzdG9rZW49IiRNQVBTVE9LRU4iCg==
+  - dokku config:set gophers-web ENV=production
   - dokku domains:set gophers-web gophers.id www.gophers.id
   - dokku domains:enable gophers-web
   - dokku config:set --no-restart gophers-web DOKKU_LETSENCRYPT_EMAIL=admin@gophers.id
@@ -40,6 +50,6 @@ runcmd:
   - git clone https://github.com/kenshaw/shell-config.git /home/ubuntu/src/shell-config
   - chown ubuntu:ubuntu -R /home/ubuntu
   - su ubuntu -c 'rm ~/.bashrc && ~/src/shell-config/setup.sh'
-  - /home/ubuntu/src/shell-config/scripts/go-setup.sh -u -c -f
+  - GOCACHE=/tmp/gobuild /home/ubuntu/src/shell-config/scripts/go-setup.sh -u -c -f
 power_state:
   mode: reboot

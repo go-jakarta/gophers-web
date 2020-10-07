@@ -1,3 +1,4 @@
+// +heroku goVersion go1.15.2
 module gophers.id/gophers-web
 
 require (
@@ -33,4 +34,4 @@ require (
 
 replace github.com/shurcooL/vfsgen => github.com/kenshaw/vfsgen v0.0.0-20181201224209-11cc086c1a6d
 
-go 1.13
+go 1.15
